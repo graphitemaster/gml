@@ -53,6 +53,10 @@ typedef struct gml_state_s gml_state_t;
  */
 typedef double gml_value_t;
 
+typedef struct {
+    gml_type_t type;
+} gml_header_t;
+
 /*
  * The definition of a callback into native code. Native code must take
  * on this definition and must explicitly box/unbox values.
@@ -97,7 +101,6 @@ gml_value_t gml_run_file(gml_state_t *gml, const char *filename);
 void gml_env_bind(gml_env_t *env, const char *name, gml_value_t value);
 int gml_env_lookup(gml_env_t *env, const char *name, gml_value_t **out);
 
-/* To box or unbox a value */
 gml_value_t gml_value_box(gml_state_t *gml, gml_header_t *value);
 gml_header_t *gml_value_unbox(gml_state_t *gml, gml_value_t value);
 

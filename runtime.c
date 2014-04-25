@@ -256,10 +256,6 @@ gml_state_t *gml_state_create(void) {
 #define GML_VALUE_BOX_TAG  0x7FF8000000000000U
 #define GML_VALUE_BOX_MASK 0xFFFF000000000000U
 
-typedef struct {
-    gml_type_t type;
-} gml_header_t;
-
 gml_value_t gml_value_box(gml_state_t *gml, gml_header_t *value) {
     (void)gml;
     uint64_t boxed = ((uint64_t)value) | GML_VALUE_BOX_TAG;
