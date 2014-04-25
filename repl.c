@@ -1,9 +1,11 @@
 #include "gml.h"
-#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
+#include <ctype.h>
 
 static void repl_prompt(void) {
-    printf(">> ");
+    printf(">>> ");
 }
 
 static char *repl_read(void) {
@@ -32,7 +34,36 @@ static char *repl_read(void) {
     return buffer;
 }
 
+/* We mimic Python's repl banner */
+static void repl_info_python(void) {
+    char *raw      = strdup(GML_COMPILER);
+    char *compiler = raw;
+    char *begin    = raw;
+    if ((begin = strchr(compiler, '('))) {
+        compiler = begin + 1;
+        /* Strip the leading ) */
+        if ((begin = strchr(compiler, ')'))) {
+            size_t index = begin - compiler;
+            memmove(&compiler[index], &compiler[index + 1], strlen(compiler) - index);
+        }
+    }
+    char *os = strdup(GML_OS);
+    os[0] = tolower(os[0]);
+    printf("GML %d.%d.%d (%s, %s, %s)\n",
+        GML_VER_MAJOR,
+        GML_VER_MINOR,
+        GML_VER_PATCH,
+        GML_TYPE,
+        __DATE__,
+        __TIME__
+    );
+    printf("[%s] on %s\n", compiler, os);
+    free(raw);
+    free(os);
+}
+
 void repl(gml_state_t *gml) {
+    repl_info_python();
     char pretty[1024];
     while (!feof(stdin)) {
         repl_prompt();

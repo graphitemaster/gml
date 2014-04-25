@@ -58,10 +58,6 @@ static gml_env_t *gml_env_create(void) {
     return gml_env_push(NULL);
 }
 
-static gml_env_t *gml_env_pop(gml_env_t *env) {
-    return env->outer;
-}
-
 static uint32_t gml_env_hash(const char *string) {
     const size_t length = strlen(string);
     uint32_t     hash   = 5381;
@@ -132,7 +128,7 @@ static gml_ht_t *gml_ht_create(size_t size) {
         hashtable->table[i] = list_create();
     return hashtable;
 }
-
+#if 0
 static void gml_ht_destroy(gml_ht_t *hashtable) {
     for (size_t i = 0; i < hashtable->size; i++) {
         gml_ht_entry_t *entry;
@@ -145,12 +141,13 @@ static void gml_ht_destroy(gml_ht_t *hashtable) {
     free(hashtable->table);
     free(hashtable);
 }
+#endif
 
 static void gml_ht_insert(gml_ht_t *hashtable, const char *key, void *value) {
     size_t hash = gml_env_hash(key) & (hashtable->size - 1);
     list_push(hashtable->table[hash], gml_ht_entry_create(key, value));
 }
-
+#if 0
 static bool gml_ht_remove(gml_ht_t *hashtable, const char *key) {
     size_t index = 0;
     gml_ht_entry_t *find = gml_ht_entry_find(hashtable, key, &index);
@@ -160,6 +157,7 @@ static bool gml_ht_remove(gml_ht_t *hashtable, const char *key) {
         return false;
     return true;
 }
+#endif
 
 static void *gml_ht_find(gml_ht_t *hashtable, const char *key) {
     gml_ht_entry_t *find = gml_ht_entry_find(hashtable, key, &(size_t){0});
@@ -516,11 +514,13 @@ static const char *gml_string_utf8_data(gml_state_t *gml, gml_value_t string) {
     gml_string_encode(source->runes, source->length, (uint8_t*)utf8);
     return utf8;
 }
-
+#if 0
 static size_t gml_string_utf8_length(gml_state_t *gml, gml_value_t string) {
     gml_string_t *source = (gml_string_t*)gml_value_unbox(gml, string);
     size_t length = gml_string_encoded_length(source->runes, source->length);
+    return length;
 }
+#endif
 
 /* Runtime table */
 typedef struct {
@@ -561,6 +561,9 @@ static uint32_t gml_table_hash(gml_state_t *gml, gml_value_t value) {
         case GML_TYPE_ATOM:
             start  = gml_atom_key(gml, value);
             length = gml_atom_length(gml, value);
+            break;
+        default:
+            // TODO error
             break;
     }
     uint32_t hash = 7;
@@ -695,7 +698,11 @@ int gml_isfalse(gml_state_t *gml, gml_value_t value) {
         case GML_TYPE_NATIVE:
         case GML_TYPE_FUNCTION:
             return 0;
+        default:
+            // TODO error
+            break;
     }
+    return 0;
 }
 
 int gml_istrue(gml_state_t *gml, gml_value_t value) {
@@ -708,6 +715,9 @@ int gml_istable(gml_state_t *gml, gml_value_t value) {
         case GML_TYPE_STRING:
         case GML_TYPE_ATOM:
             return 1;
+        default:
+            // TODO error
+            break;
     }
     return 0;
 }
@@ -800,8 +810,12 @@ static gml_value_t gml_eval_call(gml_state_t *gml, ast_t *expr, gml_env_t *env) 
             for (size_t i = 0; i < nargs; i++)
                 actuals[i] = gml_eval(gml, list_at(expr->call.args, i), env);
             return (gml_native_func(gml, callee))(gml, actuals, nargs);
+
+        default:
+            // TODO error
+            break;
     }
-    // TODO error
+    return gml_nil_create(gml);
 }
 
 static gml_value_t gml_eval_array(gml_state_t *gml, ast_t *expr, gml_env_t *env) {
@@ -869,6 +883,7 @@ static gml_value_t gml_eval_assign(gml_state_t *gml, ast_t *expr, gml_env_t *env
             gml_abort(gml);
             break;
     }
+    return gml_nil_create(gml);
 }
 
 static void gml_typecheck(gml_state_t *gml, gml_position_t position, gml_value_t value, gml_type_t type) {
@@ -903,7 +918,8 @@ static gml_value_t gml_eval_binary(gml_state_t *gml, ast_t *expr, gml_env_t *env
         case LEX_TOKEN_GEQUAL:
         case LEX_TOKEN_BITAND:
         case LEX_TOKEN_BITOR:
-            // TODO type check
+            gml_typecheck(gml, expr->position, vleft, gml_value_typeof(gml, vright));
+
             nleft  = gml_number_create(gml, vleft);
             nright = gml_number_create(gml, vright);
 
@@ -929,7 +945,12 @@ static gml_value_t gml_eval_binary(gml_state_t *gml, ast_t *expr, gml_env_t *env
         case LEX_TOKEN_NEQUAL: return gml_equal(gml, vleft, vright) ? vfalse : vtrue;
         case LEX_TOKEN_AND:    return gml_istrue(gml, vleft) ? vright : vleft;
         case LEX_TOKEN_OR:     return gml_isfalse(gml, vleft) ? vright : vleft;
+
+        default:
+            // TODO error
+            break;
     }
+    return gml_nil_create(gml);
 }
 
 static gml_value_t gml_eval_unary(gml_state_t *gml, ast_t *expr, gml_env_t *env) {
@@ -938,7 +959,11 @@ static gml_value_t gml_eval_unary(gml_state_t *gml, ast_t *expr, gml_env_t *env)
             if (gml_istrue(gml, gml_eval(gml, expr->unary.expr, env)))
                 return gml_false_create(gml);
             return gml_true_create(gml);
+        default:
+            // TODO error
+            break;
     }
+    return gml_nil_create(gml);
 }
 
 static gml_value_t gml_eval_subscript(gml_state_t *gml, ast_t *subexpr, gml_env_t *env) {
@@ -965,6 +990,7 @@ static gml_value_t gml_eval_subscript(gml_state_t *gml, ast_t *subexpr, gml_env_
             // TODO error
             break;
     }
+    return gml_nil_create(gml);
 }
 
 static gml_value_t gml_eval_lambda(gml_state_t *gml, ast_t *expr, gml_env_t *env) {
@@ -1017,7 +1043,11 @@ static gml_value_t gml_eval_statement(gml_state_t *gml, ast_t *expr, gml_env_t *
         case AST_DECLVAR: return gml_eval_declvar(gml, expr, env);
         case AST_IF:      return gml_eval_if(gml, expr, env);
         case AST_WHILE:   return gml_eval_while(gml, expr, env);
+        default:
+            // TODO error
+            break;
     }
+    return gml_nil_create(gml);
 }
 
 static gml_value_t gml_eval(gml_state_t *gml, ast_t *expr, gml_env_t *env) {
@@ -1038,6 +1068,9 @@ static gml_value_t gml_eval(gml_state_t *gml, ast_t *expr, gml_env_t *env) {
         case AST_DECLVAR:   return gml_eval_statement(gml, expr, env);
         case AST_IF:        return gml_eval_statement(gml, expr, env);
         case AST_WHILE:     return gml_eval_statement(gml, expr, env);
+        default:
+            // TODO error
+            break;
     }
     return gml_nil_create(gml);
 }
@@ -1088,6 +1121,7 @@ size_t gml_dump(gml_state_t *gml, gml_value_t value, char *buffer, size_t length
         case GML_TYPE_FUNCTION:
             return snprintf(buffer, length, "<function:%s>", gml_function_name(gml, value));
     }
+    return offset;
 }
 
 static gml_value_t gml_runbuffer(gml_state_t *gml, const char *filename, const char *source) {

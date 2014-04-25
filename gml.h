@@ -3,6 +3,10 @@
 #include <stdint.h>
 #include <stddef.h>
 
+#define GML_VER_MAJOR 0
+#define GML_VER_MINOR 5
+#define GML_VER_PATCH 0
+
 typedef struct {
     const char *filename;
     size_t      line;
