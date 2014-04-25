@@ -917,9 +917,7 @@ static gml_value_t gml_eval_assign(gml_state_t *gml, ast_t *expr, gml_env_t *env
     if (expr->binary.left->class == AST_IDENT)
         return gml_eval_assign_variable(gml, expr, env);
     if (expr->binary.left->class != AST_SUBSCRIPT) {
-        gml_throw(true, "subscripted assignment on unsupported type `%s'",
-            gml_typename(gml, expr->binary.left->class));
-        gml_abort(gml);
+        goto expect_lvalue;
     }
     gml_value_t target = gml_eval(gml, expr->binary.left->subscript.expr, env);
     gml_value_t key    = gml_eval(gml, expr->binary.left->subscript.key,  env);
@@ -928,6 +926,7 @@ static gml_value_t gml_eval_assign(gml_state_t *gml, ast_t *expr, gml_env_t *env
         case GML_TYPE_ARRAY: return gml_eval_assign_array(gml, target, key, expr->binary.right, env);
         case GML_TYPE_TABLE: return gml_eval_assign_table(gml, target, key, expr->binary.right, env);
         default:
+        expect_lvalue:
             gml_error(
                 &expr->position,
                 "assignment target is not a valid lvalue."
