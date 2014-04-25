@@ -177,6 +177,7 @@ struct gml_state_s {
     gml_env_t *global;
     gml_ht_t  *atoms;
     jmp_buf    escape;
+    size_t     lambdaindex;
 };
 
 static void gml_abort(gml_state_t *gml) {
@@ -249,8 +250,9 @@ void gml_setnative(gml_state_t *gml, const char *name, gml_native_func_t func, i
 
 gml_state_t *gml_state_create(void) {
     gml_state_t *state = malloc(sizeof(*state));
-    state->global = gml_env_create();
-    state->atoms  = gml_ht_create(32);
+    state->global      = gml_env_create();
+    state->atoms       = gml_ht_create(32);
+    state->lambdaindex = 0;
     gml_setnative(state, "print",   &gml_builtin_print,   0, -1);
     gml_setnative(state, "println", &gml_builtin_println, 0, -1);
     gml_setnative(state, "cos",     &gml_builtin_cos,     1,  1);
@@ -1072,8 +1074,10 @@ static gml_value_t gml_eval_subscript(gml_state_t *gml, ast_t *subexpr, gml_env_
 }
 
 static gml_value_t gml_eval_lambda(gml_state_t *gml, ast_t *expr, gml_env_t *env) {
+    char name[1024];
+    snprintf(name, sizeof(name), "#lambda(%zu)", gml->lambdaindex++);
     return gml_function_create(gml,
-                               "#lambda",
+                               name,
                                expr->lambda.formals,
                                expr->lambda.body,
                                env);

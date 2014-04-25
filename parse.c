@@ -126,8 +126,6 @@ static int parse_precedence(lex_token_class_t class) {
         case LEX_TOKEN_SAME:    return 4;
         case LEX_TOKEN_MINUS:   return 5;
         case LEX_TOKEN_PLUS:    return 5;
-        case LEX_TOKEN_POSTDEC: return 5;
-        case LEX_TOKEN_POSTINC: return 5;
         case LEX_TOKEN_MUL:     return 6;
         case LEX_TOKEN_DIV:     return 6;
         default:                return -1;
@@ -194,6 +192,7 @@ static ast_t *parse_expression_primary(parse_t *parse) {
 static ast_t *parse_expression_last(parse_t *parse, ast_t *lhs, int minprec) {
     for (;;) {
         lex_token_class_t op = parse_token(parse)->class;
+        /* inc dec have highest precedence now */
         if (op == LEX_TOKEN_POSTDEC || op == LEX_TOKEN_POSTINC) {
             /* Construct "var = var [+-] 1" */
             ast_t *add = ast_class_create(AST_BINARY, *parse_position(parse));
