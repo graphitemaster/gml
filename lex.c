@@ -34,8 +34,7 @@ static int lex_isstring(int ch) {
 static int lex_isnatrual(int ch) {
     return lex_isident(ch) ||
            (unsigned char)ch >= 0x80 ||
-           lex_isnumber(ch) ||
-           strchr("!@$%&=<>?:", ch);
+           lex_isnumber(ch) || ch == '_' || ch == '.';
 }
 /* Advancers */
 static int lex_get(lex_t *lex) {
