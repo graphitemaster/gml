@@ -12,57 +12,23 @@ static char *repl_read(void) {
     size_t size   = 1024;
     size_t offset = 0;
     size_t parens = 0;
-    size_t indent = 0;
-    size_t mark   = 0;
     static char buffer[1024];
     int ch;
     while ((ch = getchar()) != EOF) {
         if (offset == size - 1)
             break;
 
-        if (strchr("([{", ch)) {
+        if (strchr("([{", ch))
             parens++;
-            if (ch == '{')
-                indent++;
-        } else if (strchr(")]}", ch)) {
+        else if (strchr(")]}", ch))
             parens--;
-            if (ch == '}')
-                indent--;
-        }
         if (ch == '\n') {
-            if (strchr("};", buffer[offset - 1])) {
-                if (buffer[offset - 1] == '}' || (buffer[offset - 2] == '}' && buffer[offset - 1] == ';')) {
-                    /* Erase */
-                    printf("\033[1A\r\033[2K");
-                    fflush(stdout);
-                    /* Spaces */
-                    for (size_t i = 0; i < indent; i++)
-                        printf("....");
+            if (strchr("};", buffer[offset - 1]) && parens <= 0)
+                break;
+            else {
+                for (size_t i = 0; i < parens; i++)
                     printf("... ");
-                    /* Reprint */
-                    for (int i = mark + 1; i < offset; i++)
-                        printf("%c", buffer[i]);
-                    printf("\n");
-                    if (indent >= 1) {
-                        for (size_t i = 0; i < indent - 1; i++)
-                            printf("....");
-                        printf("... ");
-                    }
-                } else {
-                    for (size_t i = 0; i < indent; i++)
-                        printf("....");
-                    printf("... ");
-                }
-                if (parens <= 0)
-                    break;
-            } else {
-                if (buffer[offset - 1] == '{') {
-                    for (size_t i = 0; i < indent; i++)
-                        printf("....");
-                }
-                printf("... ");
             }
-            mark = offset;
         }
         buffer[offset++] = ch;
     }
