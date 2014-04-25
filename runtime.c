@@ -604,7 +604,7 @@ static uint32_t gml_table_hash(gml_state_t *gml, gml_value_t value) {
             length = gml_atom_length(gml, value);
             break;
         default:
-            gml_throw(true, "non hashable value entered hash routine");
+            gml_throw(true, "Tried to hash a non hashable value.");
             gml_abort(gml);
             break;
     }
@@ -742,7 +742,7 @@ int gml_isfalse(gml_state_t *gml, gml_value_t value) {
         case GML_TYPE_FUNCTION:
             return 0;
         default:
-            gml_throw(true, "invalid type `%s' for boolean comparision", gml_typename(gml, type));
+            gml_throw(true, "Invalid type `%s' for boolean comparision.", gml_typename(gml, type));
             gml_abort(gml);
             break;
     }
@@ -761,7 +761,7 @@ int gml_istable(gml_state_t *gml, gml_value_t value) {
         case GML_TYPE_ATOM:
             return 1;
         default:
-            gml_throw(true, "invalid type `%s' for table key", gml_typename(gml, type));
+            gml_throw(true, "Invalid type `%s' for table key.", gml_typename(gml, type));
             gml_abort(gml);
             break;
     }
@@ -831,10 +831,11 @@ static gml_value_t gml_eval_ident(gml_state_t *gml, ast_t *expr, gml_env_t *env)
 }
 
 static gml_value_t gml_eval_call(gml_state_t *gml, ast_t *expr, gml_env_t *env) {
-    gml_value_t callee = gml_eval(gml, expr->call.callee, env);
-    size_t      nargs  = list_length(expr->call.args);
+    gml_value_t callee   = gml_eval(gml, expr->call.callee, env);
+    size_t      nargs    = list_length(expr->call.args);
+    gml_type_t  calltype = gml_value_typeof(gml, callee);
 
-    switch (gml_value_typeof(gml, callee)) {
+    switch (calltype) {
         gml_env_t       *callenv;
         gml_value_t     *actuals;
 
@@ -854,7 +855,10 @@ static gml_value_t gml_eval_call(gml_state_t *gml, ast_t *expr, gml_env_t *env) 
             return (gml_native_func(gml, callee))(gml, actuals, nargs);
 
         default:
-            gml_throw(true, "tried to call non function as if it where a function");
+            gml_error(
+                &expr->position,
+                "Type `%s' is not a callable type.", gml_typename(gml, calltype)
+            );
             gml_abort(gml);
             break;
     }
@@ -894,7 +898,7 @@ static gml_value_t gml_eval_assign_array(gml_state_t *gml, gml_value_t array, gm
     if (type != GML_TYPE_NUMBER) {
         gml_error(
             &expr->position,
-            "invalid array subscript: expected type `number', got type `%s'",
+            "invalid array subscript: Expected type `number', got type `%s'.",
             gml_typename(gml, type)
         );
         gml_abort(gml);
@@ -906,7 +910,7 @@ static gml_value_t gml_eval_assign_array(gml_state_t *gml, gml_value_t array, gm
 static gml_value_t gml_eval_assign_table(gml_state_t *gml, gml_value_t table, gml_value_t key, ast_t *expr, gml_env_t *env) {
     gml_value_t value = gml_eval(gml, expr, env);
     if (!gml_istable(gml, key)) {
-        gml_throw(true, "table is not a hashtable");
+        gml_throw(true, "Table is not a hashtable.");
         gml_abort(gml);
     }
     gml_table_put(gml, table, key, value);
@@ -929,7 +933,7 @@ static gml_value_t gml_eval_assign(gml_state_t *gml, ast_t *expr, gml_env_t *env
         expect_lvalue:
             gml_error(
                 &expr->position,
-                "assignment target is not a valid lvalue."
+                "Assignment target is not a valid lvalue."
             );
             gml_abort(gml);
             break;
@@ -1034,7 +1038,7 @@ static gml_value_t gml_eval_subscript(gml_state_t *gml, ast_t *subexpr, gml_env_
             if (keytype != GML_TYPE_NUMBER) {
                 gml_error(
                     &subexpr->position,
-                    "invalid array subscript: expected type `number', got type `%s'",
+                    "invalid array subscript: Expected type `number', got type `%s'.",
                     gml_typename(gml, keytype)
                 );
                 gml_abort(gml);
@@ -1044,7 +1048,7 @@ static gml_value_t gml_eval_subscript(gml_state_t *gml, ast_t *subexpr, gml_env_
             if (index < 0 || index >= (double)gml_array_length(gml, expr)) {
                 gml_error(
                     &subexpr->position,
-                    "invalid array subscript: index out of bounds (index=%d, length=%d)",
+                    "invalid array subscript: Index out of bounds (index=%d, length=%d).",
                     (int)index,
                     (int)gml_array_length(gml, expr)
                 );
@@ -1057,7 +1061,7 @@ static gml_value_t gml_eval_subscript(gml_state_t *gml, ast_t *subexpr, gml_env_
             return gml_table_get(gml, expr, key);
 
         default:
-            gml_throw(true, "subscripting on unsupported type `%s'", gml_typename(gml, exprtype));
+            gml_throw(true, "Subscripting on unsupported type `%s'.", gml_typename(gml, exprtype));
             gml_abort(gml);
             break;
     }
