@@ -1,4 +1,6 @@
-makething = fn(n) {
+#!/usr/bin/gml
+
+fun triangle(n) {
     y = n;
     while (y >= 0) {
         i = 0;
@@ -18,12 +20,6 @@ makething = fn(n) {
         y--;
         print("\n");
     }
-};
-
-fun run(size) {
-    print("Triangle", size);
-    (makething(size))();
 }
 
-run(16);
-run(32);
+triangle(16);

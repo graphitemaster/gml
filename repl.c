@@ -36,6 +36,17 @@ static char *repl_read(void) {
     return buffer;
 }
 
+static void repl_info_version(void) {
+    printf("GML %d.%d.%d (%s, %s, %s)\n",
+        GML_VER_MAJOR,
+        GML_VER_MINOR,
+        GML_VER_PATCH,
+        GML_TYPE,
+        __DATE__,
+        __TIME__
+    );
+}
+
 /* We mimic Python's repl banner */
 static void repl_info_python(void) {
     char *raw      = strdup(GML_COMPILER);
@@ -51,14 +62,7 @@ static void repl_info_python(void) {
     }
     char *os = strdup(GML_OS);
     os[0] = tolower(os[0]);
-    printf("GML %d.%d.%d (%s, %s, %s)\n",
-        GML_VER_MAJOR,
-        GML_VER_MINOR,
-        GML_VER_PATCH,
-        GML_TYPE,
-        __DATE__,
-        __TIME__
-    );
+    repl_info_version();
     printf("[%s] on %s\n", compiler, os);
     free(raw);
     free(os);
@@ -80,9 +84,19 @@ int main(int argc, char **argv) {
     argc--;
     argv++;
     gml_state_t *state = gml_state_create();
-    if (argc)
+    if (argc) {
+        for (size_t i = 0; i < argc; i++) {
+            if (!strcmp(argv[i], "--version") || !strcmp(argv[i], "-v")) {
+                repl_info_version();
+            } else {
+                fprintf(stderr, "%s: error: unrecognized command line option `%s'\n",
+                    argv[-1], argv[i]);
+                return EXIT_FAILURE;
+            }
+        }
         gml_run_file(state, argv[0]);
-    else
+    } else {
         repl(state);
-    return 0;
+    }
+    return EXIT_SUCCESS;
 }

@@ -6,6 +6,7 @@ LDFLAGS    = -lm
 SOURCES    = lex.c list.c parse.c repl.c runtime.c
 OBJECTS    = $(SOURCES:.c=.o)
 EXECUTABLE = gml
+PREFIX     = /usr
 
 all: $(SOURCES) $(EXECUTABLE)
 
@@ -17,3 +18,9 @@ $(EXECUTABLE): $(OBJECTS)
 
 clean:
 	rm -rf $(OBJECTS) $(EXECUTABLE)
+
+install: $(EXECUTABLE)
+	install $(EXECUTABLE) $(PREFIX)/bin/
+
+uninstall:
+	rm -rf $(PREFIX)/bin/$(EXECUTABLE)
