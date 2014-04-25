@@ -235,6 +235,19 @@ static gml_value_t gml_builtin_atan2(gml_state_t *gml, gml_value_t *args, size_t
     return gml_number_create(gml, atan2(gml_number_value(gml, args[0]), gml_number_value(gml, args[1])));
 }
 
+/* string */
+static const char *gml_string_utf8_data(gml_state_t *gml, gml_value_t string);
+static gml_value_t gml_builtin_strlen(gml_state_t *gml, gml_value_t *args, size_t nargs) {
+    return gml_string_length(gml, args[0]);
+}
+static gml_value_t gml_builtin_strstr(gml_state_t *gml, gml_value_t *args, size_t nargs) {
+    const char *data = gml_string_utf8_data(gml, args[0]);
+    const char *next = gml_string_utf8_data(gml, args[1]);
+    const char *find = strstr(data, next);
+    return (find) ? gml_true_create(gml) : gml_false_create(gml);
+}
+
+/* Registration of globals and native functions */
 void gml_setglobal(gml_state_t *gml, const char *name, gml_value_t value) {
     gml_value_t *oldp;
     if (gml_env_lookup(gml->global, name, &oldp))
@@ -253,15 +266,17 @@ gml_state_t *gml_state_create(void) {
     state->global      = gml_env_create();
     state->atoms       = gml_ht_create(32);
     state->lambdaindex = 0;
-    gml_setnative(state, "print",   &gml_builtin_print,   0, -1);
-    gml_setnative(state, "println", &gml_builtin_println, 0, -1);
-    gml_setnative(state, "cos",     &gml_builtin_cos,     1,  1);
-    gml_setnative(state, "sin",     &gml_builtin_sin,     1,  1);
-    gml_setnative(state, "tan",     &gml_builtin_tan,     1,  1);
-    gml_setnative(state, "acos",    &gml_builtin_acos,    1,  1);
-    gml_setnative(state, "asin",    &gml_builtin_asin,    1,  1);
-    gml_setnative(state, "atan",    &gml_builtin_atan,    1,  1);
-    gml_setnative(state, "atan2",   &gml_builtin_atan2,   2,  2);
+    gml_setnative(state, "print",    &gml_builtin_print,    0, -1);
+    gml_setnative(state, "println",  &gml_builtin_println,  0, -1);
+    gml_setnative(state, "cos",      &gml_builtin_cos,      1,  1);
+    gml_setnative(state, "sin",      &gml_builtin_sin,      1,  1);
+    gml_setnative(state, "tan",      &gml_builtin_tan,      1,  1);
+    gml_setnative(state, "acos",     &gml_builtin_acos,     1,  1);
+    gml_setnative(state, "asin",     &gml_builtin_asin,     1,  1);
+    gml_setnative(state, "atan",     &gml_builtin_atan,     1,  1);
+    gml_setnative(state, "atan2",    &gml_builtin_atan2,    2,  2);
+    gml_setnative(state, "strlen",   &gml_builtin_strlen,   1,  1);
+    gml_setnative(state, "strstr",   &gml_builtin_strstr,   2,  2);
     return state;
 }
 
@@ -305,6 +320,24 @@ gml_value_t gml_array_create(gml_state_t *gml, gml_value_t *elements, size_t len
     memcpy(array->elements, elements, sizeof(gml_value_t) * length);
     array->length   = length;
     array->capacity = length;
+    return gml_value_box(gml, (gml_header_t*)array);
+}
+
+gml_value_t gml_array_create_cat(gml_state_t *gml, gml_value_t a1, gml_value_t a2) {
+    gml_array_t *array1 = (gml_array_t*)gml_value_unbox(gml, a1);
+    gml_array_t *array2 = (gml_array_t*)gml_value_unbox(gml, a2);
+    gml_array_t *array  = malloc(sizeof(*array));
+    if (!array)
+        return gml_nil_create(gml);
+    if (!(array->elements = malloc(sizeof(gml_value_t) * (array1->length + array2->length)))) {
+        free(array);
+        return gml_nil_create(gml);
+    }
+    array->header.type = GML_TYPE_ARRAY;
+    memcpy(array->elements, array1->elements, sizeof(gml_value_t) * array1->length);
+    memcpy(&array->elements[array1->length], array2->elements, sizeof(gml_value_t) * array2->length);
+    array->length   = array1->length + array2->length;
+    array->capacity = array->length;
     return gml_value_box(gml, (gml_header_t*)array);
 }
 
@@ -983,6 +1016,10 @@ static gml_value_t gml_eval_binary(gml_state_t *gml, ast_t *expr, gml_env_t *env
                 const char *rhs = gml_string_utf8_data(gml, vright);
                 return gml_string_create_cat(gml, lhs, rhs);
             }
+
+            /* Array concatenation */
+            if (gml_value_typeof(gml, vright) == GML_TYPE_ARRAY && expr->binary.op == LEX_TOKEN_PLUS)
+                return gml_array_create_cat(gml, vleft, vright);
 
             nleft  = gml_number_create(gml, vleft);
             nright = gml_number_create(gml, vright);

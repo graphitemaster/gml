@@ -113,4 +113,8 @@ void gml_setglobal(gml_state_t *gml, const char *name, gml_value_t value);
 /* Set a global native function */
 void gml_setnative(gml_state_t *gml, const char *name, gml_native_func_t func, int min, int max);
 
+gml_value_t gml_string_create(gml_state_t *gml, const char *string);
+size_t gml_string_length(gml_state_t *gml, gml_value_t string);
+gml_value_t gml_array_create(gml_state_t *gml, gml_value_t *elements, size_t length);
+
 #endif
