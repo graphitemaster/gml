@@ -487,9 +487,12 @@ gml_value_t gml_string_create(gml_state_t *gml, const char *string) {
         free(runes);
         return gml_nil_create(gml);
     }
-    if (!(runes = realloc(runes, nrunes * sizeof(gml_string_rune_t)))) {
-        free(runes);
-        return gml_nil_create(gml);
+    /* Allow empty strings */
+    if (nrunes != 0) {
+        if (!(runes = realloc(runes, nrunes * sizeof(gml_string_rune_t)))) {
+            free(runes);
+            return gml_nil_create(gml);
+        }
     }
     return gml_string_from_runes(gml, runes, nrunes);
 }
@@ -509,9 +512,12 @@ gml_value_t gml_string_create_cat(gml_state_t *gml, const char *str1, const char
         free(runes);
         return gml_nil_create(gml);
     }
-    if (!(runes = realloc(runes, (nrunesa + nrunesb) * sizeof(gml_string_rune_t)))) {
-        free(runes);
-        return gml_nil_create(gml);
+    /* Allow empty string concatenation */
+    if (nrunesa + nrunesb != 0) {
+        if (!(runes = realloc(runes, (nrunesa + nrunesb) * sizeof(gml_string_rune_t)))) {
+            free(runes);
+            return gml_nil_create(gml);
+        }
     }
     return gml_string_from_runes(gml, runes, (nrunesa + nrunesb));
 }
