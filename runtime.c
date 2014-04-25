@@ -1033,40 +1033,53 @@ static gml_value_t gml_eval_unary(gml_state_t *gml, ast_t *expr, gml_env_t *env)
     return gml_nil_create(gml);
 }
 
+static void gml_eval_subscript_check(gml_state_t *gml, gml_position_t *position, gml_value_t key, gml_value_t value) {
+    gml_type_t keytype  = gml_value_typeof(gml, key);
+    gml_type_t exprtype = gml_value_typeof(gml, value);
+    if (keytype != GML_TYPE_NUMBER) {
+        gml_error(
+            position,
+            "invalid type in subscript, expected type `number', got type `%s'.",
+            gml_typename(gml, keytype)
+        );
+        gml_abort(gml);
+    }
+
+    int index  = (int)gml_number_value(gml, key);
+    int length = (exprtype == GML_TYPE_STRING)
+                    ? (int)gml_string_length(gml, value)
+                    : (int)gml_array_length(gml, value);
+
+    if (index < 0 || index >= length) {
+        gml_error(
+            position,
+            "subscripting index out of bounds (index=%d, length=%d).",
+            (int)index,
+            (int)length
+        );
+        gml_abort(gml);
+    }
+}
+
 static gml_value_t gml_eval_subscript(gml_state_t *gml, ast_t *subexpr, gml_env_t *env) {
     gml_value_t expr     = gml_eval(gml, subexpr->subscript.expr, env);
     gml_value_t key      = gml_eval(gml, subexpr->subscript.key,  env);
-    gml_type_t  keytype  = gml_value_typeof(gml, key);
     gml_type_t  exprtype = gml_value_typeof(gml, expr);
     switch (exprtype) {
         case GML_TYPE_ARRAY:
-            if (keytype != GML_TYPE_NUMBER) {
-                gml_error(
-                    &subexpr->position,
-                    "invalid array subscript: Expected type `number', got type `%s'.",
-                    gml_typename(gml, keytype)
-                );
-                gml_abort(gml);
-            }
-
-            double index = gml_number_value(gml, key);
-            if (index < 0 || index >= (double)gml_array_length(gml, expr)) {
-                gml_error(
-                    &subexpr->position,
-                    "invalid array subscript: Index out of bounds (index=%d, length=%d).",
-                    (int)index,
-                    (int)gml_array_length(gml, expr)
-                );
-                gml_abort(gml);
-            }
-
+            gml_eval_subscript_check(gml, &subexpr->position, key, expr);
             return gml_array_get(gml, expr, (size_t)gml_number_value(gml, key));
-
         case GML_TYPE_TABLE:
             return gml_table_get(gml, expr, key);
-
+        case GML_TYPE_STRING:
+            gml_eval_subscript_check(gml, &subexpr->position, key, expr);
+            return gml_string_substring(gml, expr, (size_t)gml_number_value(gml, key), 1);
         default:
-            gml_throw(true, "Subscripting on unsupported type `%s'.", gml_typename(gml, exprtype));
+            gml_error(
+                &subexpr->position,
+                "Subscripting on unsupported type `%s'.",
+                gml_typename(gml, exprtype)
+            );
             gml_abort(gml);
             break;
     }
