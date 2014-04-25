@@ -494,6 +494,28 @@ gml_value_t gml_string_create(gml_state_t *gml, const char *string) {
     return gml_string_from_runes(gml, runes, nrunes);
 }
 
+gml_value_t gml_string_create_cat(gml_state_t *gml, const char *str1, const char *str2) {
+    size_t             length  = strlen(str1) + strlen(str2);
+    gml_string_rune_t *runes   = malloc(sizeof(gml_string_rune_t) * length);
+    size_t             nrunesa = 0;
+    size_t             nrunesb = 0;
+    if (!runes)
+        return gml_nil_create(gml);
+    if (!gml_string_decode((uint8_t*)str1, runes, &nrunesa)) {
+        free(runes);
+        return gml_nil_create(gml);
+    }
+    if (!gml_string_decode((uint8_t*)str2, &runes[nrunesa], &nrunesb)) {
+        free(runes);
+        return gml_nil_create(gml);
+    }
+    if (!(runes = realloc(runes, (nrunesa + nrunesb) * sizeof(gml_string_rune_t)))) {
+        free(runes);
+        return gml_nil_create(gml);
+    }
+    return gml_string_from_runes(gml, runes, (nrunesa + nrunesb));
+}
+
 gml_value_t gml_string_substring(gml_state_t *gml, gml_value_t string, size_t start, size_t length) {
     gml_string_t *source = (gml_string_t*)gml_value_unbox(gml, string);
     return gml_string_from_runes(gml, source->runes + start, length);
@@ -919,6 +941,13 @@ static gml_value_t gml_eval_binary(gml_state_t *gml, ast_t *expr, gml_env_t *env
         case LEX_TOKEN_BITAND:
         case LEX_TOKEN_BITOR:
             gml_typecheck(gml, expr->position, vleft, gml_value_typeof(gml, vright));
+
+            /* String concatenation */
+            if (gml_value_typeof(gml, vright) == GML_TYPE_STRING && expr->binary.op == LEX_TOKEN_PLUS) {
+                const char *lhs = gml_string_utf8_data(gml, vleft);
+                const char *rhs = gml_string_utf8_data(gml, vright);
+                return gml_string_create_cat(gml, lhs, rhs);
+            }
 
             nleft  = gml_number_create(gml, vleft);
             nright = gml_number_create(gml, vright);
