@@ -997,7 +997,8 @@ static gml_value_t gml_eval_binary(gml_state_t *gml, ast_t *expr, gml_env_t *env
                 case LEX_TOKEN_LEQUAL:  return nleft <= nright ? vtrue : vfalse;
                 case LEX_TOKEN_GEQUAL:  return nleft >= nright ? vtrue : vfalse;
                 default:
-                    // TODO error
+                    gml_throw(true, "operation %s is not a binary operation",
+                        lex_token_classname(expr->binary.op));
                     break;
             }
             break;
@@ -1009,7 +1010,8 @@ static gml_value_t gml_eval_binary(gml_state_t *gml, ast_t *expr, gml_env_t *env
         case LEX_TOKEN_OR:     return gml_isfalse(gml, vleft) ? vright : vleft;
 
         default:
-            // TODO error
+            gml_throw(true, "operation %s is not a binary operation",
+                lex_token_classname(expr->binary.op));
             break;
     }
     return gml_nil_create(gml);
@@ -1022,7 +1024,8 @@ static gml_value_t gml_eval_unary(gml_state_t *gml, ast_t *expr, gml_env_t *env)
                 return gml_false_create(gml);
             return gml_true_create(gml);
         default:
-            // TODO error
+            gml_throw(true, "operation %s is not a unary operation",
+                lex_token_classname(expr->binary.op));
             break;
     }
     return gml_nil_create(gml);
@@ -1119,10 +1122,8 @@ static gml_value_t gml_eval_statement(gml_state_t *gml, ast_t *expr, gml_env_t *
         case AST_IF:      return gml_eval_if(gml, expr, env);
         case AST_WHILE:   return gml_eval_while(gml, expr, env);
         default:
-            // TODO error
-            break;
+            return gml_nil_create(gml);
     }
-    return gml_nil_create(gml);
 }
 
 static gml_value_t gml_eval(gml_state_t *gml, ast_t *expr, gml_env_t *env) {
@@ -1144,10 +1145,8 @@ static gml_value_t gml_eval(gml_state_t *gml, ast_t *expr, gml_env_t *env) {
         case AST_IF:        return gml_eval_statement(gml, expr, env);
         case AST_WHILE:     return gml_eval_statement(gml, expr, env);
         default:
-            // TODO error
-            break;
+            return gml_nil_create(gml);
     }
-    return gml_nil_create(gml);
 }
 
 size_t gml_dump(gml_state_t *gml, gml_value_t value, char *buffer, size_t length) {
