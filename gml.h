@@ -102,5 +102,8 @@ gml_value_t gml_table_get(gml_state_t *gml, gml_value_t dict, gml_value_t key);
 int gml_table_empty(gml_state_t *gml, gml_value_t dict);
 list_t *gml_table_keys(gml_state_t *gml, gml_value_t dict);
 gml_value_t gml_table_create(gml_state_t *gml);
+gml_value_t gml_function_run(gml_state_t *gml, gml_value_t function, gml_value_t *args, size_t nargs);
+size_t gml_array_length(gml_state_t *gml, gml_value_t array);
+gml_value_t gml_array_get(gml_state_t *gml, gml_value_t array, size_t index);
 
 #endif

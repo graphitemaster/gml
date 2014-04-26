@@ -1,6 +1,7 @@
 #include "gml.h"
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 #include <math.h>
 
 static gml_value_t gml_builtin_print_impl(gml_state_t *gml, gml_value_t *args, size_t nargs, int nl) {
@@ -203,6 +204,64 @@ static gml_value_t gml_builtin_hypot(gml_state_t *gml, gml_value_t *args, size_t
     return gml_number_create(gml, hypot(gml_number_value(gml, args[0]), gml_number_value(gml, args[1])));
 }
 
+static gml_value_t gml_builtin_map(gml_state_t *gml, gml_value_t *args, size_t nargs) {
+    gml_arg_check(gml, args, nargs, "map", "fa");
+    size_t       length  = gml_array_length(gml, args[1]);
+    gml_value_t *applied = malloc(sizeof(gml_value_t) * length);
+    for (size_t i = 0; i < length; i++) {
+        gml_value_t current = gml_array_get(gml, args[1], i);
+        applied[i] = gml_function_run(gml, args[0], &current, 1);
+    }
+    return gml_array_create(gml, applied, length);
+}
+
+static gml_value_t gml_builtin_range(gml_state_t *gml, gml_value_t *args, size_t nargs) {
+    gml_arg_check(gml, args, nargs, "range", "nn");
+    int    beg = (int)gml_number_value(gml, args[0]);
+    int    end = (int)gml_number_value(gml, args[1]);
+    int    cur = beg;
+    size_t len = 0;
+
+    if (end < beg)
+        end = beg;
+
+    while (cur != end) {
+        cur++;
+        len++;
+    }
+    gml_value_t *applied = malloc(sizeof(gml_value_t) * len);
+    for (size_t i = 0; i < len; i++)
+        applied[i] = gml_number_create(gml, beg++);
+    return gml_array_create(gml, applied, len);
+}
+
+static gml_value_t gml_builtin_filter(gml_state_t *gml, gml_value_t *args, size_t nargs) {
+    gml_arg_check(gml, args, nargs, "filter", "fa");
+    size_t       length  = gml_array_length(gml, args[1]);
+    size_t       matched = 0;
+    gml_value_t *applied = malloc(sizeof(gml_value_t) * length);
+    for (size_t i = 0; i < length; i++) {
+        gml_value_t current = gml_array_get(gml, args[1], i);
+        gml_value_t eval    = gml_function_run(gml, args[0], &current, 1);
+        if (gml_istrue(gml, eval))
+            applied[matched++] = current;
+    }
+    return gml_array_create(gml, applied, matched);
+}
+
+static gml_value_t gml_builtin_reduce(gml_state_t *gml, gml_value_t *args, size_t nargs) {
+    gml_arg_check(gml, args, nargs, "reduce", "fa");
+    size_t      length  = gml_array_length(gml, args[1]);
+    gml_value_t result  = gml_array_get(gml, args[1], 0);
+    gml_value_t pass[2];
+    for (size_t i = 1; i < length; i++) {
+        pass[0] = result;
+        pass[1] = gml_array_get(gml, args[1], i);
+        result  = gml_function_run(gml, args[0], pass, 2);
+    }
+    return result;
+}
+
 void gml_builtins_install(gml_state_t *gml) {
     /* IO */
     gml_setnative(gml, "print",    &gml_builtin_print,    0, -1);
@@ -242,4 +301,10 @@ void gml_builtins_install(gml_state_t *gml) {
     gml_setnative(gml, "strlen",   &gml_builtin_strlen,   1,  1);
     gml_setnative(gml, "strstr",   &gml_builtin_strstr,   2,  2);
     gml_setnative(gml, "substr",   &gml_builtin_substr,   3,  3);
+
+    /* Map filter reduce */
+    gml_setnative(gml, "map",      &gml_builtin_map,      2,  2);
+    gml_setnative(gml, "range",    &gml_builtin_range,    2,  2);
+    gml_setnative(gml, "filter",   &gml_builtin_filter,   2,  2);
+    gml_setnative(gml, "reduce",   &gml_builtin_reduce,   2,  2);
 }
