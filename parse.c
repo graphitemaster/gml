@@ -270,7 +270,7 @@ static int parse_precedence(lex_token_class_t class) {
         case LEX_TOKEN_GREATER: return 3;
         case LEX_TOKEN_LEQUAL:  return 3;
         case LEX_TOKEN_GEQUAL:  return 3;
-        case LEX_TOKEN_SAME:    return 4;
+        case LEX_TOKEN_IS:      return 4;
         case LEX_TOKEN_MINUS:   return 5;
         case LEX_TOKEN_PLUS:    return 5;
         case LEX_TOKEN_MUL:     return 6;

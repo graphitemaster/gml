@@ -27,11 +27,11 @@ primitive operations (like concatenation, folding, etc).
 * Logical operators: `&& || !`
 * Bitwise operators: `& |`
 * Unary operators: `- + ++ --`
-* Comparision operators: `< > <= >= == != same`
+* Comparision operators: `< > <= >= == != is`
 
 Objects in GML can be equal or the same. Objects are considered the same
 when they refer to the same slot in the enviroment. Sameness is compared
-for with the `same` operator. Provided is an analogue of the difference
+for with the `is` operator. Provided is an analogue of the difference
 in C.
 ```
 const char *a = "hello";
@@ -70,14 +70,14 @@ take on the form `{ }`.
 
 # Functions
 
-There are two ways to declare a function. Standard functions take on
-the form:
+Functions take on the form:
 ```
-fun name(formals) {
+fn name(formals) {
     body;
 }
 ```
-Whereas anonymous functions take on the form:
+
+Anonumous functions take on the same form except you elide the name:
 ```
 fn(formals) {
     body;

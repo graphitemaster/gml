@@ -1052,7 +1052,7 @@ static gml_value_t gml_eval_binary(gml_state_t *gml, ast_t *expr, gml_env_t *env
             }
             break;
 
-        case LEX_TOKEN_SAME:   return gml_same(gml, vleft, vright) ? vtrue : vfalse;
+        case LEX_TOKEN_IS:     return gml_same(gml, vleft, vright) ? vtrue : vfalse;
         case LEX_TOKEN_EQUAL:  return gml_equal(gml, vleft, vright) ? vtrue : vfalse;
         case LEX_TOKEN_NEQUAL: return gml_equal(gml, vleft, vright) ? vfalse : vtrue;
         case LEX_TOKEN_AND:    return gml_istrue(gml, vleft) ? vright : vleft;

@@ -115,13 +115,13 @@ static lex_token_t *lex_ident(lex_t *lex) {
         const char       *name;
         lex_token_class_t class;
     } keywords[] = {
-        { "var",    LEX_TOKEN_VAR    },
-        { "fn",     LEX_TOKEN_FN     },
-        { "same",   LEX_TOKEN_SAME   },
-        { "if",     LEX_TOKEN_IF     },
-        { "elif",   LEX_TOKEN_ELIF   },
-        { "else",   LEX_TOKEN_ELSE   },
-        { "while",  LEX_TOKEN_WHILE  }
+        { "var",    LEX_TOKEN_VAR   },
+        { "fn",     LEX_TOKEN_FN    },
+        { "is",     LEX_TOKEN_IS    },
+        { "if",     LEX_TOKEN_IF    },
+        { "elif",   LEX_TOKEN_ELIF  },
+        { "else",   LEX_TOKEN_ELSE  },
+        { "while",  LEX_TOKEN_WHILE }
     };
     for (size_t i = 0; i < sizeof(keywords)/sizeof(*keywords); i++)
         if (!strcmp(lex->buffer, keywords[i].name))
@@ -280,7 +280,7 @@ const char *lex_token_classname(lex_token_class_t class) {
         case LEX_TOKEN_ARROW:       return "`=>'";
         case LEX_TOKEN_VAR:         return "(keyword `var')";
         case LEX_TOKEN_FN:          return "(keyword `fn')";
-        case LEX_TOKEN_SAME:        return "(keyword `same')";
+        case LEX_TOKEN_IS:          return "(keyword `is')";
         case LEX_TOKEN_IF:          return "(keyword `if')";
         case LEX_TOKEN_ELIF:        return "(keyword `elif')";
         case LEX_TOKEN_ELSE:        return "(keyword `else')";
