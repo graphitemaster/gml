@@ -73,7 +73,7 @@ is the return value.
 Anonymous functions can also take on short hand syntax if they only
 contain a single expression:
 ```
-fn(formals) -> expr
+fn(formals) => expr
 ```
 
 The following two are equivalent:
