@@ -30,6 +30,7 @@ static void gml_throw(bool internal, const char *format, ...) {
 }
 
 const char *gml_typename(gml_state_t *gml, gml_type_t type) {
+    (void)gml;
     switch (type) {
         case GML_TYPE_NUMBER:   return "number";
         case GML_TYPE_STRING:   return "string";
@@ -218,43 +219,97 @@ static gml_value_t gml_builtin_print_impl(gml_state_t *gml, gml_value_t *args, s
     return gml_nil_create(gml);
 }
 
+static gml_type_t gml_arg_contract(char c) {
+    switch (c) {
+        case 'n': return GML_TYPE_NUMBER;
+        case 's': return GML_TYPE_STRING;
+        case 'a': return GML_TYPE_ARRAY;
+        case 't': return GML_TYPE_TABLE;
+        case 'f': return GML_TYPE_FUNCTION;
+        case ':': return GML_TYPE_ATOM;
+        default:
+            return (gml_type_t)-1;
+    }
+}
+
+static void gml_arg_check(gml_state_t *gml, gml_value_t *args, size_t nargs, const char *name, const char *contract) {
+    size_t count = strlen(contract);
+    if (nargs != count) {
+        if (count == 1) {
+            if (nargs == 0) {
+                gml_throw(false, "function `%s' expects 1 argument, got none", name);
+            } else {
+                gml_throw(false, "function `%s' expects 1 argument, got %zu", name, nargs);
+            }
+        } else if (count == 0) {
+            gml_throw(false, "function `%s' expects no arguments, got %zu", name, nargs);
+        } else {
+            gml_throw(false, "function `%s' expects %zu arguments, got %zu", name, count, nargs);
+        }
+        gml_abort(gml);
+    }
+    for (size_t i = 0; i < nargs; i++) {
+        gml_type_t type = gml_arg_contract(contract[i]);
+        if (gml_value_typeof(gml, args[i]) != type) {
+            gml_throw(false, "incompatible type `%s' in passing argument `%zu' of `%s', expected type `%s'",
+                gml_typename(gml, gml_value_typeof(gml, args[i])),
+                i + 1,
+                name,
+                gml_typename(gml, type)
+            );
+            gml_abort(gml);
+        }
+    }
+}
+
 /* io */
 static gml_value_t gml_builtin_print(gml_state_t *gml, gml_value_t *args, size_t nargs) {
+    (void)nargs;
     return gml_builtin_print_impl(gml, args, nargs, false);
 }
 static gml_value_t gml_builtin_println(gml_state_t *gml, gml_value_t *args, size_t nargs) {
+    (void)nargs;
     return gml_builtin_print_impl(gml, args, nargs, true);
 }
 
 /* math */
 static gml_value_t gml_builtin_cos(gml_state_t *gml, gml_value_t *args, size_t nargs) {
+    gml_arg_check(gml, args, nargs, "cos", "n");
     return gml_number_create(gml, cos(gml_number_value(gml, args[0])));
 }
 static gml_value_t gml_builtin_sin(gml_state_t *gml, gml_value_t *args, size_t nargs) {
+    gml_arg_check(gml, args, nargs, "sin", "n");
     return gml_number_create(gml, sin(gml_number_value(gml, args[0])));
 }
 static gml_value_t gml_builtin_tan(gml_state_t *gml, gml_value_t *args, size_t nargs) {
+    gml_arg_check(gml, args, nargs, "tan", "n");
     return gml_number_create(gml, tan(gml_number_value(gml, args[0])));
 }
 static gml_value_t gml_builtin_acos(gml_state_t *gml, gml_value_t *args, size_t nargs) {
+    gml_arg_check(gml, args, nargs, "acos", "n");
     return gml_number_create(gml, acos(gml_number_value(gml, args[0])));
 }
 static gml_value_t gml_builtin_asin(gml_state_t *gml, gml_value_t *args, size_t nargs) {
+    gml_arg_check(gml, args, nargs, "asin", "n");
     return gml_number_create(gml, asin(gml_number_value(gml, args[0])));
 }
 static gml_value_t gml_builtin_atan(gml_state_t *gml, gml_value_t *args, size_t nargs) {
+    gml_arg_check(gml, args, nargs, "atan", "n");
     return gml_number_create(gml, atan(gml_number_value(gml, args[0])));
 }
 static gml_value_t gml_builtin_atan2(gml_state_t *gml, gml_value_t *args, size_t nargs) {
+    gml_arg_check(gml, args, nargs, "atan2", "nn");
     return gml_number_create(gml, atan2(gml_number_value(gml, args[0]), gml_number_value(gml, args[1])));
 }
 
 /* string */
 static const char *gml_string_utf8_data(gml_state_t *gml, gml_value_t string);
 static gml_value_t gml_builtin_strlen(gml_state_t *gml, gml_value_t *args, size_t nargs) {
+    gml_arg_check(gml, args, nargs, "strlen", "s");
     return gml_string_length(gml, args[0]);
 }
 static gml_value_t gml_builtin_strstr(gml_state_t *gml, gml_value_t *args, size_t nargs) {
+    gml_arg_check(gml, args, nargs, "strstr", "ss");
     const char *data = gml_string_utf8_data(gml, args[0]);
     const char *next = gml_string_utf8_data(gml, args[1]);
     const char *find = strstr(data, next);
@@ -311,10 +366,12 @@ gml_value_t gml_value_box(gml_state_t *gml, gml_header_t *value) {
 }
 
 gml_header_t *gml_value_unbox(gml_state_t *gml, gml_value_t value) {
+    (void)gml;
     return (gml_header_t*)(*(uint64_t*)&value & ~GML_VALUE_BOX_MASK);
 }
 
 gml_type_t gml_value_typeof(gml_state_t *gml, gml_value_t value) {
+    (void)gml;
     if ((*(uint64_t*)&value & GML_VALUE_BOX_MASK) == GML_VALUE_BOX_TAG)
         return gml_value_unbox(gml, value)->type;
     return GML_TYPE_NUMBER;
@@ -758,10 +815,12 @@ gml_value_t gml_table_create(gml_state_t *gml) {
 
 /* Runtime number (for consistency) */
 gml_value_t gml_number_create(gml_state_t *gml, double value) {
+    (void)gml;
     return value;
 }
 
 double gml_number_value(gml_state_t *gml, gml_value_t number) {
+    (void)gml;
     return number;
 }
 

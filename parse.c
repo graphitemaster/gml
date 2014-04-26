@@ -90,7 +90,6 @@ parse_t *parse_create(const char *filename, const char *source) {
 }
 
 void parse_destroy(parse_t *parse) {
-    lex_destroy(parse->lex);
     free(parse);
 }
 

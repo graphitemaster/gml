@@ -19,8 +19,8 @@ lex_t *lex_create(const char *filename, const char *source) {
 }
 
 void lex_destroy(lex_t *lex) {
-    free(lex->token);
-    free(lex);
+    /*free(lex->token);*/
+    /*free(lex);*/
 }
 
 /* Token predicates */

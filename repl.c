@@ -85,7 +85,7 @@ int main(int argc, char **argv) {
     argv++;
     gml_state_t *state = gml_state_create();
     if (argc) {
-        for (size_t i = 0; i < argc; i++) {
+        for (int i = 0; i < argc; i++) {
             if (!strcmp(argv[i], "--version") || !strcmp(argv[i], "-v")) {
                 repl_info_version();
             }

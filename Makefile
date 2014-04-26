@@ -1,7 +1,7 @@
 CC        ?= clang
 COMPILER   = $(shell $(CC) --version | head -1)
 OS         = $(shell uname)
-CFLAGS     = -std=gnu99 -Wall -DGML_COMPILER="\"$(COMPILER)\"" -DGML_OS="\"$(OS)\"" -DGML_TYPE="\"development\""
+CFLAGS     = -std=gnu99 -Wall -Wextra -g3 -DGML_COMPILER="\"$(COMPILER)\"" -DGML_OS="\"$(OS)\"" -DGML_TYPE="\"development\""
 LDFLAGS    = -lm
 SOURCES    = lex.c list.c parse.c repl.c runtime.c
 OBJECTS    = $(SOURCES:.c=.o)
