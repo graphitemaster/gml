@@ -40,6 +40,19 @@ if (!strcmp(a, b)) { } /* equality */
 if (a == b) { } /* sameness */
 ```
 
+# Keywords
+
+The following identifiers are reserved as they are keywords for the
+language.
+
+* while
+* if
+* else
+* elif
+* fun
+* fn
+* same
+
 # Types
 
 | Type     | Description                                             |
@@ -50,6 +63,10 @@ if (a == b) { } /* sameness */
 | Array    | an array                                                |
 | Table    | a dynamic dictionary which can be keyed by anything     |
 
+# Control
+
+Control flow is acomplished with `if` `else` `elif` and `while`. Scopes
+take on the form `{ }`.
 
 # Functions
 
@@ -172,3 +189,77 @@ table["c"] = 2;
 ````
 
 Tables can be compared with logical operators `== !=`.
+
+# Examples
+
+The `range` function allows you to construct an array of integers within
+some range.
+```
+>>> range(0, 5);
+[0, 1, 2, 3, 4]
+>>> range(-5, 3);
+[-5, -4, -3, -2, -1, 0, 1, 2]
+```
+
+The `map` function lets you map a function to a sequence such that
+the function is called for each of the sequence's items and returns an
+array of the return values. For example we can compute some cubes:
+```
+>>> map(fn(x) => x * x * x, range(1, 11));
+[1, 8, 27, 64, 125, 216, 343, 512, 729, 1000]
+```
+
+The `filter` function lets you pick out items in a sequence with
+a function which needs to evaluate `:true`. A list is constructed for
+each of the sequence's items where that function returns `:true`.
+```
+>>> filter(fn(x) => x % 2 == 0, range(1, 6));
+[2, 4]
+```
+
+The `reduce` function returns a single value constructed by calling
+a binary function on the first two items of the subsequence, then on the
+result and the next item, and so on. For example, to compute the sum
+if some numbers:
+```
+>>> reduce(fn(x, y) => x + y, range(1, 11));
+55
+```
+
+Another good example for the `reduce` function is constructing strings
+from an array of strings:
+```
+>>> reduce(fn(x, y) => x + y, [ "hello ", "world" ]);
+"hello world"
+```
+
+The `length` function lets you query the length of an array or a string:
+```
+>>> length(range(1, 11));
+10
+>>> length("hello world");
+11
+```
+
+The `print` and `println` functions let you print and print lines. They
+take variable number of arguments and are formatted in the order arguments
+are passed to it.
+```
+print(1, 3.14, [1, 2, 3]);
+1 3.14 [1, 2, 3]
+```
+
+You can search for substrings in a string with `strstr`. It will just
+return `:true` or `:false` if the needle is found in the haystack.
+```
+>>> strstr("hello world", "world");
+:true
+```
+
+You can also pick out a substring in a string with `substr`.
+```
+>>> substr("hello world", 6, 5);
+"world"
+```
+
+There are a plethora of math functions as well.
