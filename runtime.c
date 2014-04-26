@@ -43,16 +43,18 @@ const char *gml_typename(gml_state_t *gml, gml_type_t type) {
 }
 
 /* Enviroment */
+#define ENV_BUCKETS 7
+
 typedef struct gml_env_binding_s gml_env_binding_t;
 
 struct gml_env_binding_s {
-    const char        *name;
+    char              *name;
     gml_env_binding_t *next;
     gml_value_t        value;
 };
 
 struct gml_env_s {
-    gml_env_binding_t *buckets[7];
+    gml_env_binding_t *buckets[ENV_BUCKETS];
     gml_env_t         *outer;
 };
 
@@ -65,6 +67,19 @@ static gml_env_t *gml_env_push(gml_env_t *outer) {
 
 static gml_env_t *gml_env_create(void) {
     return gml_env_push(NULL);
+}
+
+static void gml_env_destroy(gml_env_t *env) {
+    for (size_t i = 0; i < ENV_BUCKETS; i++) {
+        for (gml_env_binding_t *bind = env->buckets[i]; bind;) {
+            gml_env_binding_t *next = bind->next;
+            free(bind->name);
+            free(bind);
+            bind = next;
+        }
+    }
+    if (env->outer)
+        gml_env_destroy(env->outer);
 }
 
 static uint32_t gml_env_hash(const char *string) {
@@ -137,7 +152,7 @@ static gml_ht_t *gml_ht_create(size_t size) {
         hashtable->table[i] = list_create();
     return hashtable;
 }
-#if 0
+
 static void gml_ht_destroy(gml_ht_t *hashtable) {
     for (size_t i = 0; i < hashtable->size; i++) {
         gml_ht_entry_t *entry;
@@ -150,7 +165,6 @@ static void gml_ht_destroy(gml_ht_t *hashtable) {
     free(hashtable->table);
     free(hashtable);
 }
-#endif
 
 static void gml_ht_insert(gml_ht_t *hashtable, const char *key, void *value) {
     size_t hash = gml_env_hash(key) & (hashtable->size - 1);
@@ -278,6 +292,12 @@ gml_state_t *gml_state_create(void) {
     gml_setnative(state, "strlen",   &gml_builtin_strlen,   1,  1);
     gml_setnative(state, "strstr",   &gml_builtin_strstr,   2,  2);
     return state;
+}
+
+void gml_state_destroy(gml_state_t *state) {
+    gml_env_destroy(state->global);
+    gml_ht_destroy(state->atoms);
+    free(state);
 }
 
 /* NaN boxed value representation of types */

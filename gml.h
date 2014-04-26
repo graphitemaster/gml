@@ -93,6 +93,7 @@ gml_type_t gml_value_typeof(gml_state_t *gml, gml_value_t value);
 
 /* To create a context */
 gml_state_t *gml_state_create(void);
+void gml_state_destroy(gml_state_t *state);
 
 /* To dump the evaluation*/
 size_t gml_dump(gml_state_t *gml, gml_value_t value, char *buffer, size_t length);

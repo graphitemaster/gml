@@ -94,5 +94,6 @@ int main(int argc, char **argv) {
     } else {
         repl(state);
     }
+    gml_state_destroy(state);
     return EXIT_SUCCESS;
 }
