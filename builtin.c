@@ -203,12 +203,6 @@ static gml_value_t gml_builtin_hypot(gml_state_t *gml, gml_value_t *args, size_t
     return gml_number_create(gml, hypot(gml_number_value(gml, args[0]), gml_number_value(gml, args[1])));
 }
 
-static gml_value_t gml_builtin_copy(gml_state_t *gml, gml_value_t *args, size_t nargs) {
-    (void)args;
-    (void)nargs;
-    return gml_nil_create(gml);
-}
-
 void gml_builtins_install(gml_state_t *gml) {
     /* IO */
     gml_setnative(gml, "print",    &gml_builtin_print,    0, -1);
@@ -248,7 +242,4 @@ void gml_builtins_install(gml_state_t *gml) {
     gml_setnative(gml, "strlen",   &gml_builtin_strlen,   1,  1);
     gml_setnative(gml, "strstr",   &gml_builtin_strstr,   2,  2);
     gml_setnative(gml, "substr",   &gml_builtin_substr,   3,  3);
-
-    /* Misc */
-    gml_setnative(gml, "copy",     &gml_builtin_copy,     1,  1);
 }
