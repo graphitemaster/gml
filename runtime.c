@@ -323,7 +323,11 @@ void gml_state_destroy(gml_state_t *state) {
 
 gml_value_t gml_value_box(gml_state_t *gml, gml_header_t *value) {
     (void)gml;
-    uint64_t boxed = ((uint64_t)value) | GML_VALUE_BOX_TAG;
+    union {
+        uint64_t u64;
+        size_t   ptr;
+    } box = { .ptr = (size_t)value };
+    uint64_t boxed = box.u64 | GML_VALUE_BOX_TAG;
     return *(gml_value_t*)&boxed;
 }
 
