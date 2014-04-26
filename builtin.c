@@ -248,6 +248,10 @@ static gml_value_t gml_builtin_reduce(gml_state_t *gml, gml_value_t *args, size_
     size_t      length  = gml_array_length(gml, args[1]);
     gml_value_t result  = gml_array_get(gml, args[1], 0);
     gml_value_t pass[2];
+
+    if (length < 2)
+        return gml_nil_create(gml);
+
     for (size_t i = 1; i < length; i++) {
         pass[0] = result;
         pass[1] = gml_array_get(gml, args[1], i);
