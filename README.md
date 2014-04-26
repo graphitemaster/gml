@@ -249,17 +249,15 @@ print(1, 3.14, [1, 2, 3]);
 1 3.14 [1, 2, 3]
 ```
 
-You can search for substrings in a string with `strstr`. It will just
-return `:true` or `:false` if the needle is found in the haystack.
+The `find` function lets you find substrings or subsequences within
+arrays and returns the index of where that occurs.
 ```
->>> strstr("hello world", "world");
-:true
-```
-
-You can also pick out a substring in a string with `substr`.
-```
->>> substr("hello world", 6, 5);
-"world"
+>>> find([1, 2, 3, 1], [2, 3]);
+1
+>>> find("hello world", "world");
+6
+>>> find([1, [2, 3], 1], [[2, 3]]);
+1
 ```
 
 There are a plethora of math functions as well.
