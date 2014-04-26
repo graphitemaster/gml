@@ -89,7 +89,129 @@ parse_t *parse_create(const char *filename, const char *source) {
     return parse;
 }
 
-void parse_destroy(parse_t *parse) {
+static void parse_destroy_ast(ast_t *ast) {
+    if (!ast)
+        return;
+
+    list_iterator_t *it;
+    switch (ast->class) {
+        case AST_ARRAY:
+            it = list_iterator_create(ast->array);
+            while (!list_iterator_end(it))
+                parse_destroy_ast(list_iterator_next(it));
+            list_iterator_destroy(it);
+            list_destroy(ast->array);
+            break;
+
+        case AST_TABLE:
+            it = list_iterator_create(ast->table);
+            while (!list_iterator_end(it))
+                parse_destroy_ast(list_iterator_next(it));
+            list_iterator_destroy(it);
+            list_destroy(ast->table);
+            break;
+
+        case AST_TABLEENTRY:
+            parse_destroy_ast(ast->dictentry.key);
+            parse_destroy_ast(ast->dictentry.expr);
+            break;
+
+        case AST_BINARY:
+            parse_destroy_ast(ast->binary.left);
+            parse_destroy_ast(ast->binary.right);
+            break;
+
+        case AST_UNARY:
+            parse_destroy_ast(ast->unary.expr);
+            break;
+
+        case AST_SUBSCRIPT:
+            parse_destroy_ast(ast->subscript.key);
+            parse_destroy_ast(ast->subscript.expr);
+            break;
+
+        case AST_LAMBDA:
+            it = list_iterator_create(ast->lambda.formals);
+            while (!list_iterator_end(it))
+                parse_destroy_ast(list_iterator_next(it));
+            list_iterator_destroy(it);
+            list_destroy(ast->lambda.formals);
+            it = list_iterator_create(ast->lambda.body);
+            while (!list_iterator_end(it))
+                parse_destroy_ast(list_iterator_next(it));
+            list_iterator_destroy(it);
+            list_destroy(ast->lambda.body);
+            break;
+
+        case AST_CALL:
+            parse_destroy_ast(ast->call.callee);
+            it = list_iterator_create(ast->call.args);
+            while (!list_iterator_end(it))
+                parse_destroy_ast(list_iterator_next(it));
+            list_iterator_destroy(it);
+            list_destroy(ast->call.args);
+            break;
+
+        case AST_IF:
+            it = list_iterator_create(ast->ifstmt);
+            while (!list_iterator_end(it))
+                parse_destroy_ast(list_iterator_next(it));
+            list_iterator_destroy(it);
+            list_destroy(ast->ifstmt);
+            break;
+
+        case AST_IFCLAUSE:
+            parse_destroy_ast(ast->ifclause.condition);
+            it = list_iterator_create(ast->ifclause.body);
+            while (!list_iterator_end(it))
+                parse_destroy_ast(list_iterator_next(it));
+            list_iterator_destroy(it);
+            list_destroy(ast->ifclause.body);
+            break;
+
+        case AST_WHILE:
+            parse_destroy_ast(ast->whilestmt.condition);
+            it = list_iterator_create(ast->whilestmt.body);
+            while (!list_iterator_end(it))
+                parse_destroy_ast(list_iterator_next(it));
+            list_iterator_destroy(it);
+            list_destroy(ast->whilestmt.body);
+            break;
+
+        case AST_DECLVAR:
+            parse_destroy_ast(ast->vardecl.initializer);
+            break;
+
+        case AST_DECLFUN:
+            it = list_iterator_create(ast->fundecl.impl.formals);
+            while (!list_iterator_end(it))
+                parse_destroy_ast(list_iterator_next(it));
+            list_iterator_destroy(it);
+            list_destroy(ast->fundecl.impl.formals);
+            it = list_iterator_create(ast->fundecl.impl.body);
+            while (!list_iterator_end(it))
+                parse_destroy_ast(list_iterator_next(it));
+            list_iterator_destroy(it);
+            list_destroy(ast->fundecl.impl.body);
+            break;
+
+        case AST_TOPLEVEL:
+            it = list_iterator_create(ast->toplevel);
+            while (!list_iterator_end(it))
+                parse_destroy_ast(list_iterator_next(it));
+            list_iterator_destroy(it);
+            list_destroy(ast->toplevel);
+            break;
+
+        default:
+            break;
+    }
+    free(ast);
+}
+
+void parse_destroy(parse_t *parse, ast_t *ast) {
+    parse_destroy_ast(ast);
+    lex_destroy(parse->lex);
     free(parse);
 }
 
@@ -136,19 +258,19 @@ static int parse_precedence(lex_token_class_t class) {
     }
 }
 static ast_t *parse_expression_primary(parse_t *parse) {
-    ast_t *ast = ast_create(*parse_position(parse));
+    ast_t *ast = NULL;
     if (parse_matchliteral(parse))
         ast = parse_literal(parse);
     else if (parse_match(parse, LEX_TOKEN_IDENTIFIER)) {
-        ast->class = AST_IDENT;
+        ast        = ast_class_create(AST_IDENT, *parse_position(parse));
         ast->ident = parse_token(parse)->string;
         parse_skip(parse);
     } else if (parse_matchskip(parse, LEX_TOKEN_FN)) {
-        ast->class          = AST_LAMBDA;
+        ast                 = ast_class_create(AST_LAMBDA, *parse_position(parse));
         ast->lambda.formals = parse_formals(parse);
         ast->lambda.body    = parse_block(parse);
     } else if (parse_matchskip(parse, LEX_TOKEN_NOT)) {
-        ast->class          = AST_UNARY;
+        ast                 = ast_class_create(AST_UNARY, *parse_position(parse));
         ast->unary.op       = LEX_TOKEN_NOT;
         ast->unary.expr     = parse_expression(parse);
     } else if (parse_matchskip(parse, LEX_TOKEN_LPAREN)) {

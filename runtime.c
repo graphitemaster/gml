@@ -171,17 +171,20 @@ static void gml_ht_insert(gml_ht_t *hashtable, const char *key, void *value) {
     size_t hash = gml_env_hash(key) & (hashtable->size - 1);
     list_push(hashtable->table[hash], gml_ht_entry_create(key, value));
 }
-#if 0
-static bool gml_ht_remove(gml_ht_t *hashtable, const char *key) {
-    size_t index = 0;
-    gml_ht_entry_t *find = gml_ht_entry_find(hashtable, key, &index);
-    if (!find)
-        return false;
-    if (!list_erase(hashtable->table[index], find))
-        return false;
-    return true;
+
+static void gml_ht_foreach(gml_ht_t *hashtable, void *pass, void (*callback)(void *, void *)) {
+    for (size_t i = 0; i < hashtable->size; i++) {
+        list_t *list = hashtable->table[i];
+        if (!list)
+            break;
+        list_iterator_t *it = list_iterator_create(list);
+        while (!list_iterator_end(it))  {
+            gml_ht_entry_t *entry = list_iterator_next(it);
+            callback(pass, entry->value);
+        }
+        list_iterator_destroy(it);
+    }
 }
-#endif
 
 static void *gml_ht_find(gml_ht_t *hashtable, const char *key) {
     gml_ht_entry_t *find = gml_ht_entry_find(hashtable, key, &(size_t){0});
@@ -191,6 +194,8 @@ static void *gml_ht_find(gml_ht_t *hashtable, const char *key) {
 struct gml_state_s {
     gml_env_t *global;
     gml_ht_t  *atoms;
+    parse_t   *parse;
+    ast_t     *ast;
     jmp_buf    escape;
     size_t     lambdaindex;
 };
@@ -316,6 +321,44 @@ static gml_value_t gml_builtin_strstr(gml_state_t *gml, gml_value_t *args, size_
     return (find) ? gml_true_create(gml) : gml_false_create(gml);
 }
 
+/* Runtime atom */
+typedef struct {
+    gml_header_t header;
+    size_t       length;
+    char        *key;
+} gml_atom_t;
+
+gml_value_t gml_atom_create(gml_state_t *gml, const char *key) {
+    gml_atom_t *atom = gml_ht_find(gml->atoms, key);
+    if (atom)
+        return gml_value_box(gml, (gml_header_t*)atom);
+
+    /* Create a new atom and insert it into our hashtable */
+    const size_t length = strlen(key);
+    if (!(atom = malloc(sizeof(*atom))))
+        return gml_nil_create(gml);
+    atom->header.type = GML_TYPE_ATOM;
+    atom->length      = length;
+    atom->key         = strdup(key);
+    gml_ht_insert(gml->atoms, key, atom);
+
+    return gml_value_box(gml, (gml_header_t*)atom);
+}
+
+static void gml_atom_destroy(gml_state_t *gml, gml_atom_t *atom) {
+    (void)gml;
+    free(atom->key);
+    free(atom);
+}
+
+size_t gml_atom_length(gml_state_t *gml, gml_value_t value) {
+    return ((gml_atom_t*)gml_value_unbox(gml, value))->length;
+}
+
+const char *gml_atom_key(gml_state_t *gml, gml_value_t value) {
+    return ((gml_atom_t*)gml_value_unbox(gml, value))->key;
+}
+
 /* Registration of globals and native functions */
 void gml_setglobal(gml_state_t *gml, const char *name, gml_value_t value) {
     gml_value_t *oldp;
@@ -330,10 +373,13 @@ void gml_setnative(gml_state_t *gml, const char *name, gml_native_func_t func, i
     gml_setglobal(gml, name, value);
 }
 
+/* State runtime */
 gml_state_t *gml_state_create(void) {
     gml_state_t *state = malloc(sizeof(*state));
     state->global      = gml_env_create();
     state->atoms       = gml_ht_create(32);
+    state->parse       = NULL;
+    state->ast         = NULL;
     state->lambdaindex = 0;
     gml_setnative(state, "print",    &gml_builtin_print,    0, -1);
     gml_setnative(state, "println",  &gml_builtin_println,  0, -1);
@@ -351,7 +397,9 @@ gml_state_t *gml_state_create(void) {
 
 void gml_state_destroy(gml_state_t *state) {
     gml_env_destroy(state->global);
+    gml_ht_foreach(state->atoms, state, (void(*)(void*,void*))&gml_atom_destroy);
     gml_ht_destroy(state->atoms);
+    parse_destroy(state->parse, state->ast);
     free(state);
 }
 
@@ -428,38 +476,6 @@ gml_value_t gml_array_get(gml_state_t *gml, gml_value_t array, size_t index) {
 
 void gml_array_set(gml_state_t *gml, gml_value_t array, size_t index, gml_value_t value) {
     ((gml_array_t*)gml_value_unbox(gml, array))->elements[index] = value;
-}
-
-/* Runtime atom */
-typedef struct {
-    gml_header_t header;
-    size_t       length;
-    char        *key;
-} gml_atom_t;
-
-gml_value_t gml_atom_create(gml_state_t *gml, const char *key) {
-    gml_atom_t *atom = gml_ht_find(gml->atoms, key);
-    if (atom)
-        return gml_value_box(gml, (gml_header_t*)atom);
-
-    /* Create a new atom and insert it into our hashtable */
-    const size_t length = strlen(key);
-    if (!(atom = malloc(sizeof(*atom))))
-        return gml_nil_create(gml);
-    atom->header.type = GML_TYPE_ATOM;
-    atom->length      = length;
-    atom->key         = strdup(key);
-    gml_ht_insert(gml->atoms, key, atom);
-
-    return gml_value_box(gml, (gml_header_t*)atom);
-}
-
-size_t gml_atom_length(gml_state_t *gml, gml_value_t value) {
-    return ((gml_atom_t*)gml_value_unbox(gml, value))->length;
-}
-
-const char *gml_atom_key(gml_state_t *gml, gml_value_t value) {
-    return ((gml_atom_t*)gml_value_unbox(gml, value))->key;
 }
 
 /* Runtime function */
@@ -1333,15 +1349,15 @@ size_t gml_dump(gml_state_t *gml, gml_value_t value, char *buffer, size_t length
 }
 
 static gml_value_t gml_runbuffer(gml_state_t *gml, const char *filename, const char *source) {
-    parse_t *parse = parse_create(filename, source);
+    gml->parse = parse_create(filename, source);
     if (setjmp(gml->escape) == 0) {
-        ast_t *ast = parse_run(parse);
-        if (ast) {
-            parse_destroy(parse);
-            return gml_eval(gml, ast, gml->global);
+        if ((gml->ast = parse_run(gml->parse))) {
+            gml_value_t value = gml_eval(gml, gml->ast, gml->global);
+            parse_destroy(gml->parse, gml->ast);
+            return value;
         }
     }
-    parse_destroy(parse);
+    parse_destroy(gml->parse, gml->ast);
     return gml_nil_create(gml);
 }
 

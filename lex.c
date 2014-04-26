@@ -9,6 +9,9 @@ void gml_error(gml_position_t *position, const char *format, ...);
 
 lex_t *lex_create(const char *filename, const char *source) {
     lex_t *lex = malloc(sizeof(*lex));
+    if (!lex)
+        return NULL;
+
     lex->position.filename = filename;
     lex->position.line     = 1;
     lex->position.column   = 1;
@@ -19,8 +22,9 @@ lex_t *lex_create(const char *filename, const char *source) {
 }
 
 void lex_destroy(lex_t *lex) {
-    /*free(lex->token);*/
-    /*free(lex);*/
+    if (!lex) return;
+    free(lex->token);
+    free(lex);
 }
 
 /* Token predicates */
@@ -88,8 +92,12 @@ static size_t lex_consume_class(lex_t *lex, const char *class) {
 /* Producers */
 static lex_token_t *lex_emit(lex_t *lex, lex_token_class_t class) {
     lex->buffer[lex->size] = '\0';
-    lex_token_t *token = malloc(sizeof(*token));
+
+    /* Destroy old */
     free(lex->token);
+
+    /* Create new and replace */
+    lex_token_t *token = malloc(sizeof(*token));
     token->class       = class;
     token->position    = lex->position;
     token->string      = strdup(lex->buffer);

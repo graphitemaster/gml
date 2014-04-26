@@ -50,7 +50,7 @@ typedef enum {
 
 typedef struct {
     lex_token_class_t class;
-    const char       *string;
+    char             *string;
     gml_position_t    position;
 } lex_token_t;
 
