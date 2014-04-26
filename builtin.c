@@ -57,31 +57,6 @@ static gml_value_t gml_builtin_length(gml_state_t *gml, gml_value_t *args, size_
     return gml_nil_create(gml);
 }
 
-/* string */
-static gml_value_t gml_builtin_strstr(gml_state_t *gml, gml_value_t *args, size_t nargs) {
-    gml_arg_check(gml, args, nargs, "strstr", "ss");
-    const char *data = gml_string_utf8data(gml, args[0]);
-    const char *next = gml_string_utf8data(gml, args[1]);
-    const char *find = strstr(data, next);
-    return (find) ? gml_true_create(gml) : gml_false_create(gml);
-}
-static gml_value_t gml_builtin_substr(gml_state_t *gml, gml_value_t *args, size_t nargs) {
-    gml_arg_check(gml, args, nargs, "substr", "snn");
-    size_t      length = gml_string_length(gml, args[0]);
-    int         beg    = (int)gml_number_value(gml, args[1]);
-    int         end    = (int)gml_number_value(gml, args[2]);
-
-    if (beg < 0 || end < 0)
-        goto erange;
-    if ((size_t)(beg + end) > length)
-        goto erange;
-
-    return gml_string_substring(gml, args[0], beg, end);
-erange:
-    gml_throw(0, "invalid substring range");
-    return gml_nil_create(gml);
-}
-
 /* math */
 static gml_value_t gml_builtin_cos(gml_state_t *gml, gml_value_t *args, size_t nargs) {
     gml_arg_check(gml, args, nargs, "cos", "n");
@@ -281,6 +256,59 @@ static gml_value_t gml_builtin_reduce(gml_state_t *gml, gml_value_t *args, size_
     return result;
 }
 
+static int gml_builtin_find_array_equal(gml_state_t *gml, gml_value_t x, gml_value_t y, size_t start) {
+    size_t length = gml_array_length(gml, y);
+    for (size_t i = 0; i < length; i++) {
+        if (!gml_equal(gml, gml_array_get(gml, x, start++), gml_array_get(gml, y, i)))
+            return 0;
+    }
+    return 1;
+}
+
+static size_t gml_builtin_find_array_index(gml_state_t *gml, gml_value_t x, gml_value_t y) {
+    size_t max = 1 + gml_array_length(gml, x) - gml_array_length(gml, y);
+    for (size_t i = 0 ; i < max ; i++) {
+        if (gml_builtin_find_array_equal(gml, x, y, i))
+            return i;
+    }
+    return (size_t)-1;
+}
+
+static gml_value_t gml_builtin_find(gml_state_t *gml, gml_value_t *args, size_t nargs) {
+    if (nargs != 2)
+        return gml_nil_create(gml);
+
+    gml_type_t a = gml_value_typeof(gml, args[0]);
+    gml_type_t b = gml_value_typeof(gml, args[1]);
+
+    if (a != b)
+        return gml_nil_create(gml);
+
+    const char *stra;
+    const char *strb;
+    const char *strf;
+    size_t      find;
+    switch (a) {
+        case GML_TYPE_STRING:
+            stra = gml_string_utf8data(gml, args[0]);
+            strb = gml_string_utf8data(gml, args[1]);
+            strf = strstr(stra, strb);
+            if (strf) {
+                size_t index = strf - stra;
+                return gml_number_create(gml, index);
+            }
+            break;
+
+        case GML_TYPE_ARRAY:
+            find = gml_builtin_find_array_index(gml, args[0], args[1]);
+            if (find != (size_t)-1)
+                return gml_number_create(gml, find);
+        default:
+            break;
+    }
+    return gml_nil_create(gml);
+}
+
 void gml_builtins_install(gml_state_t *gml) {
     /* IO */
     gml_setnative(gml, "print",    &gml_builtin_print,    0, -1);
@@ -316,10 +344,6 @@ void gml_builtins_install(gml_state_t *gml) {
     gml_setnative(gml, "cbrt",     &gml_builtin_cbrt,     1,  1);
     gml_setnative(gml, "hypot",    &gml_builtin_hypot,    2,  2);
 
-    /* String */
-    gml_setnative(gml, "strstr",   &gml_builtin_strstr,   2,  2);
-    gml_setnative(gml, "substr",   &gml_builtin_substr,   3,  3);
-
     /* Map filter reduce */
     gml_setnative(gml, "map",      &gml_builtin_map,      2,  2);
     gml_setnative(gml, "range",    &gml_builtin_range,    2,  2);
@@ -327,4 +351,5 @@ void gml_builtins_install(gml_state_t *gml) {
     gml_setnative(gml, "reduce",   &gml_builtin_reduce,   2,  2);
 
     gml_setnative(gml, "length",   &gml_builtin_length,   1,  1);
+    gml_setnative(gml, "find",     &gml_builtin_find,     2,  2);
 }
