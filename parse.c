@@ -304,7 +304,7 @@ static ast_t *parse_expression_primary(parse_t *parse) {
     } else if (parse_matchskip(parse, LEX_TOKEN_FN)) {
         ast                 = ast_class_create(AST_LAMBDA, *parse_position(parse));
         ast->lambda.formals = parse_formals(parse);
-        if (parse_matchskip(parse, LEX_TOKEN_LBRACE))
+        if (parse_match(parse, LEX_TOKEN_LBRACE))
             ast->lambda.body = parse_block(parse);
         else if (parse_match(parse, LEX_TOKEN_ARROW))
             ast->lambda.body = parse_arrow(parse);

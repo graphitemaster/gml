@@ -1137,7 +1137,7 @@ static gml_value_t gml_eval_lambda(gml_state_t *gml, ast_t *expr, gml_env_t *env
     char name[1024];
     snprintf(name, sizeof(name), "#lambda(%zu)", gml->lambdaindex++);
     return gml_function_create(gml,
-                               name,
+                               strdup(name),
                                expr->lambda.formals,
                                expr->lambda.body,
                                env);
