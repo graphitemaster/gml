@@ -237,9 +237,9 @@ static void gml_arg_check(gml_state_t *gml, gml_value_t *args, size_t nargs, con
     if (nargs != count) {
         if (count == 1) {
             if (nargs == 0) {
-                gml_throw(false, "function `%s' expects 1 argument, got none", name);
+                gml_throw(false, "function `%s' expects an argument, got none", name);
             } else {
-                gml_throw(false, "function `%s' expects 1 argument, got %zu", name, nargs);
+                gml_throw(false, "function `%s' expects an argument, got %zu", name, nargs);
             }
         } else if (count == 0) {
             gml_throw(false, "function `%s' expects no arguments, got %zu", name, nargs);
