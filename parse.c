@@ -291,6 +291,9 @@ static ast_t *parse_call(parse_t *parse, ast_t *ast) {
     ast_t *call       = ast_class_create(AST_CALL, ast->position);
     call->call.callee = ast;
     call->call.args   = args;
+    /* chaining calls */
+    if (parse_matchskip(parse, LEX_TOKEN_LPAREN))
+        return parse_call(parse, call);
     return call;
 }
 static ast_t *parse_subscript_sugar(parse_t *parse, ast_t *ast);
