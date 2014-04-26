@@ -25,6 +25,7 @@ typedef enum {
     LEX_TOKEN_MINUS,     /* -     */
     LEX_TOKEN_MUL,       /* *     */
     LEX_TOKEN_DIV,       /* /     */
+    LEX_TOKEN_MOD,       /* %     */
     LEX_TOKEN_EQUAL,     /* ==    */
     LEX_TOKEN_NEQUAL,    /* !=    */
     LEX_TOKEN_LESS,      /* <     */

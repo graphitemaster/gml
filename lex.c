@@ -218,6 +218,7 @@ lex_token_t *lex_run(lex_t *lex) {
         case '.': return lex_emit(lex, LEX_TOKEN_DOT);
         case '*': return lex_emit(lex, LEX_TOKEN_MUL);
         case '/': return lex_emit(lex, LEX_TOKEN_DIV);
+        case '%': return lex_emit(lex, LEX_TOKEN_MOD);
         case '+': return lex_emit(lex, (lex_peek(lex) == '+') ? lex_get(lex), LEX_TOKEN_POSTINC : LEX_TOKEN_PLUS);
         case '-': return lex_emit(lex, (lex_peek(lex) == '-') ? lex_get(lex), LEX_TOKEN_POSTDEC : LEX_TOKEN_MINUS);
         case '!': return lex_emit(lex, (lex_peek(lex) == '=') ? lex_get(lex), LEX_TOKEN_NEQUAL  : LEX_TOKEN_NOT);
@@ -254,6 +255,7 @@ const char *lex_token_classname(lex_token_class_t class) {
         case LEX_TOKEN_MINUS:       return "`-'";
         case LEX_TOKEN_MUL:         return "`*'";
         case LEX_TOKEN_DIV:         return "`/'";
+        case LEX_TOKEN_MOD:         return "`%'";
         case LEX_TOKEN_AND:         return "`&&'";
         case LEX_TOKEN_BITAND:      return "`&`";
         case LEX_TOKEN_BITOR:       return "`\'";

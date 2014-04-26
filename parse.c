@@ -272,6 +272,7 @@ static int parse_precedence(lex_token_class_t class) {
         case LEX_TOKEN_PLUS:    return 5;
         case LEX_TOKEN_MUL:     return 6;
         case LEX_TOKEN_DIV:     return 6;
+        case LEX_TOKEN_MOD:     return 6;
         default:                return -1;
     }
 }

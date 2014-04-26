@@ -1009,6 +1009,7 @@ static gml_value_t gml_eval_binary(gml_state_t *gml, ast_t *expr, gml_env_t *env
         case LEX_TOKEN_MINUS:
         case LEX_TOKEN_MUL:
         case LEX_TOKEN_DIV:
+        case LEX_TOKEN_MOD:
         case LEX_TOKEN_LESS:
         case LEX_TOKEN_GREATER:
         case LEX_TOKEN_LEQUAL:
@@ -1036,6 +1037,7 @@ static gml_value_t gml_eval_binary(gml_state_t *gml, ast_t *expr, gml_env_t *env
                 case LEX_TOKEN_MINUS:   return gml_number_create(gml, nleft - nright);
                 case LEX_TOKEN_MUL:     return gml_number_create(gml, nleft * nright);
                 case LEX_TOKEN_DIV:     return gml_number_create(gml, nleft / nright);
+                case LEX_TOKEN_MOD:     return gml_number_create(gml, (uint32_t)nleft % (uint32_t)nright);
                 case LEX_TOKEN_BITAND:  return gml_number_create(gml, (uint32_t)nleft & (uint32_t)nright);
                 case LEX_TOKEN_BITOR:   return gml_number_create(gml, (uint32_t)nleft | (uint32_t)nright);
                 case LEX_TOKEN_LESS:    return nleft <  nright ? vtrue : vfalse;
