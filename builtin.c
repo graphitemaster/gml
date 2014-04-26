@@ -34,11 +34,30 @@ static gml_value_t gml_builtin_println(gml_state_t *gml, gml_value_t *args, size
     return gml_builtin_print_impl(gml, args, nargs, 1);
 }
 
-/* string */
-static gml_value_t gml_builtin_strlen(gml_state_t *gml, gml_value_t *args, size_t nargs) {
-    gml_arg_check(gml, args, nargs, "strlen", "s");
-    return gml_string_length(gml, args[0]);
+static gml_value_t gml_builtin_length(gml_state_t *gml, gml_value_t *args, size_t nargs) {
+    if (nargs != 1)
+        return gml_nil_create(gml);
+
+    list_t     *keys;
+    gml_value_t value;
+
+    switch (gml_value_typeof(gml, args[0])) {
+        case GML_TYPE_STRING:
+            return gml_number_create(gml, (double)gml_string_length(gml, args[0]));
+        case GML_TYPE_ARRAY:
+            return gml_number_create(gml, (double)gml_array_length(gml, args[0]));
+        case GML_TYPE_TABLE:
+            keys  = gml_table_keys(gml, args[0]);
+            value = gml_number_create(gml, list_length(keys));
+            list_destroy(keys);
+            return value;
+        default:
+            break;
+    }
+    return gml_nil_create(gml);
 }
+
+/* string */
 static gml_value_t gml_builtin_strstr(gml_state_t *gml, gml_value_t *args, size_t nargs) {
     gml_arg_check(gml, args, nargs, "strstr", "ss");
     const char *data = gml_string_utf8data(gml, args[0]);
@@ -298,7 +317,6 @@ void gml_builtins_install(gml_state_t *gml) {
     gml_setnative(gml, "hypot",    &gml_builtin_hypot,    2,  2);
 
     /* String */
-    gml_setnative(gml, "strlen",   &gml_builtin_strlen,   1,  1);
     gml_setnative(gml, "strstr",   &gml_builtin_strstr,   2,  2);
     gml_setnative(gml, "substr",   &gml_builtin_substr,   3,  3);
 
@@ -307,4 +325,6 @@ void gml_builtins_install(gml_state_t *gml) {
     gml_setnative(gml, "range",    &gml_builtin_range,    2,  2);
     gml_setnative(gml, "filter",   &gml_builtin_filter,   2,  2);
     gml_setnative(gml, "reduce",   &gml_builtin_reduce,   2,  2);
+
+    gml_setnative(gml, "length",   &gml_builtin_length,   1,  1);
 }

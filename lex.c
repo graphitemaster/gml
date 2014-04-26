@@ -95,9 +95,9 @@ static lex_token_t *lex_emit(lex_t *lex, lex_token_class_t class) {
     lex->buffer[lex->size] = '\0';
 
     /* Destroy old */
-    if (lex->token)
-        free(lex->token->string);
-    free(lex->token);
+    //if (lex->token)
+    //    free(lex->token->string);
+    //free(lex->token);
 
     /* Create new and replace */
     lex_token_t *token = malloc(sizeof(*token));
@@ -115,18 +115,19 @@ static lex_token_t *lex_ident(lex_t *lex) {
         const char       *name;
         lex_token_class_t class;
     } keywords[] = {
-        { "var",   LEX_TOKEN_VAR   },
-        { "fun",   LEX_TOKEN_FUN   },
-        { "fn",    LEX_TOKEN_FN    },
-        { "same",  LEX_TOKEN_SAME  },
-        { "if",    LEX_TOKEN_IF    },
-        { "elif",  LEX_TOKEN_ELIF  },
-        { "else",  LEX_TOKEN_ELSE  },
-        { "while", LEX_TOKEN_WHILE }
+        { "var",    LEX_TOKEN_VAR    },
+        { "fun",    LEX_TOKEN_FUN    },
+        { "fn",     LEX_TOKEN_FN     },
+        { "same",   LEX_TOKEN_SAME   },
+        { "if",     LEX_TOKEN_IF     },
+        { "elif",   LEX_TOKEN_ELIF   },
+        { "else",   LEX_TOKEN_ELSE   },
+        { "while",  LEX_TOKEN_WHILE  }
     };
     for (size_t i = 0; i < sizeof(keywords)/sizeof(*keywords); i++)
         if (!strcmp(lex->buffer, keywords[i].name))
             return lex_emit(lex, keywords[i].class);
+
     return lex_emit(lex, LEX_TOKEN_IDENTIFIER);
 }
 static lex_token_t *lex_atom(lex_t *lex) {

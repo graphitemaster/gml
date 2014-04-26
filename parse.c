@@ -1,6 +1,7 @@
 #include "parse.h"
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
 
 void gml_error(gml_position_t *position, const char *format, ...);
 
@@ -101,7 +102,7 @@ static void parse_destroy_ast(ast_t *ast) {
     list_iterator_t *it;
     switch (ast->class) {
         case AST_IDENT:
-            free(ast->ident);
+            //free(ast->ident);
             break;
 
         case AST_ATOM:
@@ -110,13 +111,14 @@ static void parse_destroy_ast(ast_t *ast) {
 
         case AST_STRING:
             free(ast->string);
+            break;
 
         case AST_ARRAY:
             it = list_iterator_create(ast->array);
             while (!list_iterator_end(it))
                 parse_destroy_ast(list_iterator_next(it));
             list_iterator_destroy(it);
-            list_destroy(ast->array);
+            //list_destroy(ast->array);
             break;
 
         case AST_TABLE:

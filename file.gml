@@ -13,7 +13,7 @@ fun triangle(n) {
             if (x & y) {
                 print("  ");
             } else {
-                print("◢◣");
+                print("**");
             }
             x++;
         }
@@ -22,4 +22,4 @@ fun triangle(n) {
     }
 }
 
-triangle(32);
+triangle(16);

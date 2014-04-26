@@ -79,6 +79,7 @@ static void gml_env_destroy(gml_env_t *env) {
     }
     if (env->outer)
         gml_env_destroy(env->outer);
+    free(env);
 }
 
 static uint32_t gml_env_hash(const char *string) {
@@ -310,7 +311,7 @@ gml_state_t *gml_state_create(void) {
 
 void gml_state_destroy(gml_state_t *state) {
     gml_env_destroy(state->global);
-    gml_ht_foreach(state->atoms, state, (void(*)(void*,void*))&gml_atom_destroy);
+    //gml_ht_foreach(state->atoms, state, (void(*)(void*,void*))&gml_atom_destroy);
     gml_ht_destroy(state->atoms);
     parse_destroy(state->parse, state->ast);
     free(state);
