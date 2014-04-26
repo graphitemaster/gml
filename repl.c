@@ -84,6 +84,7 @@ int main(int argc, char **argv) {
     argc--;
     argv++;
     gml_state_t *state = gml_state_create();
+    gml_builtins_install(state);
     if (argc) {
         for (int i = 0; i < argc; i++) {
             if (!strcmp(argv[i], "--version") || !strcmp(argv[i], "-v")) {

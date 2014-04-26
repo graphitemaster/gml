@@ -61,61 +61,40 @@ typedef struct {
     gml_type_t type;
 } gml_header_t;
 
-/*
- * The definition of a callback into native code. Native code must take
- * on this definition and must explicitly box/unbox values.
- */
 typedef gml_value_t (*gml_native_func_t)(gml_state_t *state, gml_value_t *value_array, size_t value_length);
 
-/* Create a nil value */
 gml_value_t gml_nil_create(gml_state_t *gml);
-/* Create true value */
 gml_value_t gml_true_create(gml_state_t *gml);
-/* Create false value */
 gml_value_t gml_false_create(gml_state_t *gml);
-/* Create number */
 gml_value_t gml_number_create(gml_state_t *gml, double value);
-/* Get number from value */
 double gml_number_value(gml_state_t *gml, gml_value_t number);
 gml_value_t gml_native_create(gml_state_t *gml, gml_native_func_t func, int min, int max);
-
-/* Test is value isfalse/istrue */
 int gml_isfalse(gml_state_t *gml, gml_value_t value);
 int gml_istrue(gml_state_t *gml, gml_value_t value);
-
-/* Test if value equal or same (interned) */
 int gml_equal(gml_state_t *gml, gml_value_t v1, gml_value_t v2);
 int gml_same(gml_state_t *gml, gml_value_t v1, gml_value_t v2);
-
-/* To get a human readable typename */
 const char *gml_typename(gml_state_t *gml, gml_type_t type);
 gml_type_t gml_value_typeof(gml_state_t *gml, gml_value_t value);
-
-/* To create a context */
 gml_state_t *gml_state_create(void);
 void gml_state_destroy(gml_state_t *state);
-
-/* To dump the evaluation*/
 size_t gml_dump(gml_state_t *gml, gml_value_t value, char *buffer, size_t length);
-
-/* To run from string or file */
 gml_value_t gml_run_string(gml_state_t *gml, const char *source);
 gml_value_t gml_run_file(gml_state_t *gml, const char *filename);
-
-/* To set or get from an enviroment */
 void gml_env_bind(gml_env_t *env, const char *name, gml_value_t value);
 int gml_env_lookup(gml_env_t *env, const char *name, gml_value_t **out);
-
 gml_value_t gml_value_box(gml_state_t *gml, gml_header_t *value);
 gml_header_t *gml_value_unbox(gml_state_t *gml, gml_value_t value);
-
-/* To set or get a global */
 void gml_setglobal(gml_state_t *gml, const char *name, gml_value_t value);
-/* Set a global native function */
 void gml_setnative(gml_state_t *gml, const char *name, gml_native_func_t func, int min, int max);
-
 gml_value_t gml_string_create(gml_state_t *gml, const char *string);
 size_t gml_string_length(gml_state_t *gml, gml_value_t string);
 gml_value_t gml_array_create(gml_state_t *gml, gml_value_t *elements, size_t length);
+gml_type_t gml_arg_contract(char c);
+void gml_arg_check(gml_state_t *gml, gml_value_t *args, size_t nargs, const char *name, const char *contract);
+void gml_builtins_install(gml_state_t *gml);
+char *gml_string_utf8data(gml_state_t *gml, gml_value_t string);
+size_t gml_string_utf8length(gml_state_t *gml, gml_value_t string);
+void gml_throw(int internal, const char *format, ...);
+gml_value_t gml_string_substring(gml_state_t *gml, gml_value_t string, size_t start, size_t length);
 
 #endif
