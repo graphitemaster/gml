@@ -321,24 +321,30 @@ void gml_state_destroy(gml_state_t *state) {
 #define GML_VALUE_BOX_TAG  0x7FF8000000000000U
 #define GML_VALUE_BOX_MASK 0xFFFF000000000000U
 
+typedef union {
+    uint64_t      u64;
+    gml_value_t   val;
+    gml_header_t *ptr;
+} gml_value_box_t;
+
 gml_value_t gml_value_box(gml_state_t *gml, gml_header_t *value) {
     (void)gml;
-    union {
-        uint64_t u64;
-        size_t   ptr;
-    } box = { .ptr = (size_t)value };
-    uint64_t boxed = box.u64 | GML_VALUE_BOX_TAG;
-    return *(gml_value_t*)&boxed;
+    gml_value_box_t box = { .ptr = value };
+    box.u64 |= GML_VALUE_BOX_TAG;
+    return box.val;
 }
 
 gml_header_t *gml_value_unbox(gml_state_t *gml, gml_value_t value) {
     (void)gml;
-    return (gml_header_t*)(*(uint64_t*)&value & ~GML_VALUE_BOX_MASK);
+    gml_value_box_t box = { .val = value };
+    box.u64 &= ~GML_VALUE_BOX_MASK;
+    return box.ptr;
 }
 
 gml_type_t gml_value_typeof(gml_state_t *gml, gml_value_t value) {
     (void)gml;
-    if ((*(uint64_t*)&value & GML_VALUE_BOX_MASK) == GML_VALUE_BOX_TAG)
+    gml_value_box_t box = { .val = value };
+    if ((box.u64 & GML_VALUE_BOX_MASK) == GML_VALUE_BOX_TAG)
         return gml_value_unbox(gml, value)->type;
     return GML_TYPE_NUMBER;
 }
