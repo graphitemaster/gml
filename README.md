@@ -4,14 +4,15 @@ GML is a dynamically typed, higher-order, interpreted and embeddable
 programming language.
 
 # Why
-One of the projects I'm currently working on; Neothye, needs a scripting
+One of the projects I'm currently working on; Neothye, needed a scripting
 language primarly for constructing shaders and supplying global configuration
-of the engine as well as materials. Other projects of mine; Redroid, also
-requires a configuration file format, INI files were considered but the
-complexity of Redroid requires hierarchical format like JSON. Tables in
-GML are essentially similar and can be used just as easily. There is also
-a requirement for a templating engine in Redroid while constructing HTML,
-which GML is capable of handling.
+of the engine as well as configuration files for materials.
+
+Another project of mine; Redroid, also required a configuration file format,
+as well as a templating engine. INI files were considered at first but the
+complexity of Redroid configuration required a hierarchical format like JSON.
+Tables in GML work like JSON objects and a templating engine can be easily
+constructed in GML as well.
 
 # Philosophy
 
@@ -149,5 +150,13 @@ two are functionally equivlant.
 table[:member]
 table.member
 ```
+
+Tables are dynamic, you can add keys and values after the table was
+initially created, for example:
+```
+table = { :a = 1, "b" = 2 };
+table.c = 1;
+table["c"] = 2;
+````
 
 Tables can be compared with logical operators `== !=`.
