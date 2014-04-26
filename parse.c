@@ -293,6 +293,37 @@ static ast_t *parse_call(parse_t *parse, ast_t *ast) {
     call->call.args   = args;
     return call;
 }
+static ast_t *parse_subscript_sugar(parse_t *parse, ast_t *ast);
+static ast_t *parse_subscript(parse_t *parse, ast_t *ast) {
+    ast_t *subscript = ast_class_create(AST_SUBSCRIPT, ast->position);
+    subscript->subscript.expr = ast;
+    subscript->subscript.key  = parse_expression(parse);
+    parse_expectskip(parse, LEX_TOKEN_RBRACKET);
+    if (parse_matchskip(parse, LEX_TOKEN_LPAREN))
+        return parse_call(parse, subscript);
+    else if (parse_matchskip(parse, LEX_TOKEN_LBRACKET))
+        return parse_subscript(parse, subscript);
+    else if (parse_matchskip(parse, LEX_TOKEN_DOT))
+        return parse_subscript_sugar(parse, subscript);
+    return subscript;
+}
+static ast_t *parse_subscript_sugar(parse_t *parse, ast_t *ast) {
+    /* Dot syntax sugar */
+    ast_t *subscript = ast_class_create(AST_SUBSCRIPT, ast->position);
+    ast_t *key       = ast_class_create(AST_ATOM, *parse_position(parse));
+    parse_expect(parse, LEX_TOKEN_IDENTIFIER);
+    key->atom = parse_token_string(parse);
+    parse_skip(parse);
+    subscript->subscript.expr = ast;
+    subscript->subscript.key  = key;
+    if (parse_matchskip(parse, LEX_TOKEN_LPAREN))
+        return parse_call(parse, subscript);
+    else if (parse_matchskip(parse, LEX_TOKEN_LBRACKET))
+        return parse_subscript(parse, subscript);
+    else if (parse_matchskip(parse, LEX_TOKEN_DOT))
+        return parse_subscript_sugar(parse, subscript);
+    return subscript;
+}
 static ast_t *parse_expression_primary(parse_t *parse) {
     ast_t *ast = NULL;
     if (parse_matchliteral(parse))
@@ -320,30 +351,12 @@ static ast_t *parse_expression_primary(parse_t *parse) {
         longjmp(parse->escape, 1);
     }
 
-    if (parse_matchskip(parse, LEX_TOKEN_LPAREN)) {
+    if (parse_matchskip(parse, LEX_TOKEN_LPAREN))
         return parse_call(parse, ast);
-    } else if (parse_matchskip(parse, LEX_TOKEN_LBRACKET)) {
-        /* Dict or array subscripting */
-        ast_t *subscript = ast_class_create(AST_SUBSCRIPT, ast->position);
-        subscript->subscript.expr = ast;
-        subscript->subscript.key  = parse_expression(parse);
-        parse_expectskip(parse, LEX_TOKEN_RBRACKET);
-        if (parse_matchskip(parse, LEX_TOKEN_LPAREN))
-            return parse_call(parse, subscript);
-        return subscript;
-    } else if (parse_matchskip(parse, LEX_TOKEN_DOT)) {
-        /* Dot syntax sugar */
-        ast_t *subscript = ast_class_create(AST_SUBSCRIPT, ast->position);
-        ast_t *key       = ast_class_create(AST_ATOM, *parse_position(parse));
-        parse_expect(parse, LEX_TOKEN_IDENTIFIER);
-        key->atom = parse_token_string(parse);
-        parse_skip(parse);
-        subscript->subscript.expr = ast;
-        subscript->subscript.key  = key;
-        if (parse_matchskip(parse, LEX_TOKEN_LPAREN))
-            return parse_call(parse, subscript);
-        return subscript;
-    }
+    else if (parse_matchskip(parse, LEX_TOKEN_LBRACKET))
+        return parse_subscript(parse, ast);
+    else if (parse_matchskip(parse, LEX_TOKEN_DOT))
+        return parse_subscript_sugar(parse, ast);
     return ast;
 }
 
