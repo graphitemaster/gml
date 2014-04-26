@@ -1,6 +1,6 @@
 # GML
 
-GML is a dynamically typed, higher-order interpreted and embeddable
+GML is a dynamically typed, higher-order, interpreted and embeddable
 programming language.
 
 # Philosophy
