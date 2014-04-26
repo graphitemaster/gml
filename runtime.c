@@ -853,6 +853,7 @@ static gml_value_t gml_eval_block(gml_state_t *gml, list_t *block, gml_env_t *en
     gml_value_t value = gml_nil_create(gml);
     while (!list_iterator_end(it))
         value = gml_eval(gml, list_iterator_next(it), env);
+    list_iterator_destroy(it);
     return value;
 }
 

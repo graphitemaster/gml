@@ -88,10 +88,6 @@ int main(int argc, char **argv) {
         for (size_t i = 0; i < argc; i++) {
             if (!strcmp(argv[i], "--version") || !strcmp(argv[i], "-v")) {
                 repl_info_version();
-            } else {
-                fprintf(stderr, "%s: error: unrecognized command line option `%s'\n",
-                    argv[-1], argv[i]);
-                return EXIT_FAILURE;
             }
         }
         gml_run_file(state, argv[0]);

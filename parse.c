@@ -4,7 +4,7 @@
 void gml_error(gml_position_t *position, const char *format, ...);
 
 static ast_t *ast_class_create(ast_class_t class, gml_position_t position) {
-    ast_t *ast = malloc(sizeof(*ast));
+    ast_t *ast    = malloc(sizeof(*ast));
     ast->class    = class;
     ast->position = position;
     return ast;
