@@ -220,7 +220,7 @@ each of the sequence's items where that function returns `:true`.
 The `reduce` function returns a single value constructed by calling
 a binary function on the first two items of the subsequence, then on the
 result and the next item, and so on. For example, to compute the sum
-if some numbers:
+of a range of numbers:
 ```
 >>> reduce(fn(x, y) => x + y, range(1, 11));
 55
