@@ -253,6 +253,7 @@ static ast_t *parse_expression(parse_t *parse);
 static ast_t *parse_array(parse_t *parse);
 static ast_t *parse_dict(parse_t *parse);
 static ast_t *parse_literal(parse_t *parse);
+static list_t *parse_arrow(parse_t *parse);
 static list_t *parse_block(parse_t *parse);
 static list_t *parse_formals(parse_t *parse);
 
@@ -289,7 +290,10 @@ static ast_t *parse_expression_primary(parse_t *parse) {
     } else if (parse_matchskip(parse, LEX_TOKEN_FN)) {
         ast                 = ast_class_create(AST_LAMBDA, *parse_position(parse));
         ast->lambda.formals = parse_formals(parse);
-        ast->lambda.body    = parse_block(parse);
+        if (parse_match(parse, LEX_TOKEN_LBRACE))
+            ast->lambda.body = parse_block(parse);
+        else if (parse_match(parse, LEX_TOKEN_ARROW))
+            ast->lambda.body = parse_arrow(parse);
     } else if (parse_matchskip(parse, LEX_TOKEN_NOT)) {
         ast                 = ast_class_create(AST_UNARY, *parse_position(parse));
         ast->unary.op       = LEX_TOKEN_NOT;
@@ -458,6 +462,13 @@ static list_t *parse_block(parse_t *parse) {
     while (!parse_match(parse, LEX_TOKEN_RBRACE))
         list_push(statements, (void*)parse_statement(parse));
     parse_expectskip(parse, LEX_TOKEN_RBRACE);
+    return statements;
+}
+
+static list_t *parse_arrow(parse_t *parse) {
+    list_t *statements = list_create();
+    parse_expectskip(parse, LEX_TOKEN_ARROW);
+    list_push(statements, parse_expression(parse));
     return statements;
 }
 

@@ -225,9 +225,17 @@ lex_token_t *lex_run(lex_t *lex) {
         case '!': return lex_emit(lex, (lex_peek(lex) == '=') ? lex_get(lex), LEX_TOKEN_NEQUAL  : LEX_TOKEN_NOT);
         case '<': return lex_emit(lex, (lex_peek(lex) == '=') ? lex_get(lex), LEX_TOKEN_LEQUAL  : LEX_TOKEN_LESS);
         case '>': return lex_emit(lex, (lex_peek(lex) == '=') ? lex_get(lex), LEX_TOKEN_GEQUAL  : LEX_TOKEN_GREATER);
-        case '=': return lex_emit(lex, (lex_peek(lex) == '=') ? lex_get(lex), LEX_TOKEN_EQUAL   : LEX_TOKEN_ASSIGN);
         case '&': return lex_emit(lex, (lex_peek(lex) == '&') ? lex_get(lex), LEX_TOKEN_AND     : LEX_TOKEN_BITAND);
         case '|': return lex_emit(lex, (lex_peek(lex) == '|') ? lex_get(lex), LEX_TOKEN_OR      : LEX_TOKEN_BITOR);
+        case '=':
+            if (lex_peek(lex) == '>') {
+                lex_get(lex);
+                return lex_emit(lex, LEX_TOKEN_ARROW);
+            } else if (lex_peek(lex) == '=') {
+                lex_get(lex);
+                return lex_emit(lex, LEX_TOKEN_EQUAL);
+            }
+            return lex_emit(lex, LEX_TOKEN_ASSIGN);
         default:
             gml_error(&lex->position, "Unrecognized character `%c'.", ch);
             return lex_emit(lex, LEX_TOKEN_ERROR);
@@ -270,6 +278,7 @@ const char *lex_token_classname(lex_token_class_t class) {
         case LEX_TOKEN_GEQUAL:      return "`>='";
         case LEX_TOKEN_POSTDEC:     return "`--'";
         case LEX_TOKEN_POSTINC:     return "`++'";
+        case LEX_TOKEN_ARROW:       return "`=>'";
         case LEX_TOKEN_VAR:         return "(keyword `var')";
         case LEX_TOKEN_FUN:         return "(keyword `fun')";
         case LEX_TOKEN_FN:          return "(keyword `fn')";
