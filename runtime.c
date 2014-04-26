@@ -1256,9 +1256,12 @@ static gml_value_t gml_runbuffer(gml_state_t *gml, const char *filename, const c
     parse_t *parse = parse_create(filename, source);
     if (setjmp(gml->escape) == 0) {
         ast_t *ast = parse_run(parse);
-        if (ast)
+        if (ast) {
+            parse_destroy(parse);
             return gml_eval(gml, ast, gml->global);
+        }
     }
+    parse_destroy(parse);
     return gml_nil_create(gml);
 }
 

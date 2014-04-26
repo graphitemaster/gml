@@ -89,6 +89,11 @@ parse_t *parse_create(const char *filename, const char *source) {
     return parse;
 }
 
+void parse_destroy(parse_t *parse) {
+    lex_destroy(parse->lex);
+    free(parse);
+}
+
 static int parse_matchsimple(parse_t *parse) {
     return parse_match(parse, LEX_TOKEN_NUMBER) ||
            parse_match(parse, LEX_TOKEN_STRING) ||

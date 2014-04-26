@@ -18,6 +18,11 @@ lex_t *lex_create(const char *filename, const char *source) {
     return lex;
 }
 
+void lex_destroy(lex_t *lex) {
+    free(lex->token);
+    free(lex);
+}
+
 /* Token predicates */
 static int lex_isident(int ch) {
     return isalpha(ch) || (unsigned char)ch >= 0xC0;
@@ -84,6 +89,7 @@ static size_t lex_consume_class(lex_t *lex, const char *class) {
 static lex_token_t *lex_emit(lex_t *lex, lex_token_class_t class) {
     lex->buffer[lex->size] = '\0';
     lex_token_t *token = malloc(sizeof(*token));
+    free(lex->token);
     token->class       = class;
     token->position    = lex->position;
     token->string      = strdup(lex->buffer);

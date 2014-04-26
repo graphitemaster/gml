@@ -65,6 +65,7 @@ typedef struct {
 } lex_t;
 
 lex_t *lex_create(const char *file, const char *source);
+void lex_destroy(lex_t *lex);
 lex_token_t *lex_run(lex_t *lex);
 const char *lex_token_classname(lex_token_class_t class);
 #endif
