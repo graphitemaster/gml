@@ -3,6 +3,13 @@
 #include <string.h>
 #include <stdio.h>
 #include <ctype.h>
+#include <signal.h>
+
+static volatile int signaled = 0;
+static void repl_signal(int sig) {
+    (void)sig;
+    signaled = 1;
+}
 
 static void repl_prompt(void) {
     printf(">>> ");
@@ -14,10 +21,9 @@ static char *repl_read(void) {
     size_t parens = 0;
     static char buffer[1024];
     int ch;
-    while ((ch = getchar()) != EOF) {
+    while (signaled == 0 && (ch = getchar()) != EOF) {
         if (offset == size - 1)
             break;
-
         if (strchr("([{", ch))
             parens++;
         else if (strchr(")]}", ch))
@@ -71,7 +77,7 @@ static void repl_info_python(void) {
 void repl(gml_state_t *gml) {
     repl_info_python();
     char pretty[1024];
-    while (!feof(stdin)) {
+    while (signaled == 0 && !feof(stdin)) {
         repl_prompt();
         char *read = repl_read();
         gml_value_t value = gml_run_string(gml, read);
@@ -83,6 +89,13 @@ void repl(gml_state_t *gml) {
 int main(int argc, char **argv) {
     argc--;
     argv++;
+    struct sigaction sa;
+    memset(&sa, 0, sizeof(struct sigaction));
+    sa.sa_handler = repl_signal;
+    sa.sa_flags   = 0;
+    sigaction(SIGINT,  &sa, NULL);
+    sigaction(SIGTERM, &sa, NULL);
+
     gml_state_t *state = gml_state_create();
     gml_builtins_install(state);
     if (argc) {
@@ -95,6 +108,7 @@ int main(int argc, char **argv) {
     } else {
         repl(state);
     }
+
     gml_state_destroy(state);
     return EXIT_SUCCESS;
 }
