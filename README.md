@@ -15,6 +15,7 @@ primitive operations (like concatenation, folding, etc).
 * Binary operators: `+ - * /`
 * Logical operators: `&& || !`
 * Bitwise operators: `& |`
+* Unary operators: `- + ++ --`
 * Comparision operators: `< > <= >= == != same`
 
 Objects in GML can be equal or the same. Objects are considered the same
@@ -140,23 +141,3 @@ table.member
 ```
 
 Tables can be compared with logical operators `== !=`.
-
-# Builtins
-GML comes with a serise of builtin functions.
-
-## IO
-* print(...)
-* println(...)
-
-## Math
-* cos(x)
-* sin(x)
-* tan(x)
-* acos(x)
-* asin(x)
-* atan(x)
-* atan2(x,y)
-
-## String
-* strlen(string)
-* strstr(haystack, needle)
