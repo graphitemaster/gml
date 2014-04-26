@@ -83,7 +83,8 @@ Strings are immutable, while you may subscript to retrieve a character
 at some index you cannot modify the character within the string.
 
 Strings can be concatenated with the binary `+` operator.
-Strings can be compared with the logical operators, `==, !=`.
+
+Strings can be compared with the logical operators, `== !=`.
 
 
 # Arrays
@@ -107,7 +108,8 @@ Arrays are mutable which means you may subscript the array and modify
 the contents at a specific index.
 
 Arrays can be concatenated with the binary `+` operator.
-Arrays can be compared with the logical operators `==, !=`.
+
+Arrays can be compared with the logical operators `== !=`.
 
 # Tables
 Tables are dictionaries that operate like dynamic structures, they can
@@ -119,18 +121,25 @@ Tables take on the form:
 table = { :member = value, :foo = "123", "bar" = 1 };
 ```
 
-For atoms as keys tables can be subscripted with:
+For atoms as keys, tables can be subscripted with:
 ```
 table.member
 ```
 
-For keys which are not atoms, keys can be subscripted with the value of
-the key, for instance:
+For keys which are not atoms, subscripting can be acomplished with the
+value of the key itself, for instance:
 ```
 table["bar"];
 ```
 
-Tables can be compared with logical operators `==, !=`.
+This also allows for subscripting with atoms as values; thus, the following
+two are functionally equivlant.
+```
+table[:member]
+table.member
+```
+
+Tables can be compared with logical operators `== !=`.
 
 # Builtins
 GML comes with a serise of builtin functions.
