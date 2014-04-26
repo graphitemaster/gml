@@ -1,5 +1,6 @@
 #ifndef GML_HDR
 #define GML_HDR
+#include "list.h"
 #include <stdint.h>
 #include <stddef.h>
 
@@ -96,5 +97,10 @@ char *gml_string_utf8data(gml_state_t *gml, gml_value_t string);
 size_t gml_string_utf8length(gml_state_t *gml, gml_value_t string);
 void gml_throw(int internal, const char *format, ...);
 gml_value_t gml_string_substring(gml_state_t *gml, gml_value_t string, size_t start, size_t length);
+void gml_table_put(gml_state_t *gml, gml_value_t dict, gml_value_t key, gml_value_t value);
+gml_value_t gml_table_get(gml_state_t *gml, gml_value_t dict, gml_value_t key);
+int gml_table_empty(gml_state_t *gml, gml_value_t dict);
+list_t *gml_table_keys(gml_state_t *gml, gml_value_t dict);
+gml_value_t gml_table_create(gml_state_t *gml);
 
 #endif

@@ -1,4 +1,3 @@
-#include "list.h"
 #include "gml.h"
 #include "parse.h"
 
@@ -1250,6 +1249,7 @@ size_t gml_dump(gml_state_t *gml, gml_value_t value, char *buffer, size_t length
                 if (i < nkeys - 1)
                     append(", ");
             }
+            list_destroy(keys);
             append("}");
             return offset;
         case GML_TYPE_NATIVE:
@@ -1262,14 +1262,9 @@ size_t gml_dump(gml_state_t *gml, gml_value_t value, char *buffer, size_t length
 
 static gml_value_t gml_runbuffer(gml_state_t *gml, const char *filename, const char *source) {
     gml->parse = parse_create(filename, source);
-    if (setjmp(gml->escape) == 0) {
-        if ((gml->ast = parse_run(gml->parse))) {
-            gml_value_t value = gml_eval(gml, gml->ast, gml->global);
-            parse_destroy(gml->parse, gml->ast);
-            return value;
-        }
-    }
-    parse_destroy(gml->parse, gml->ast);
+    if (setjmp(gml->escape) == 0)
+        if ((gml->ast = parse_run(gml->parse)))
+            return gml_eval(gml, gml->ast, gml->global);
     return gml_nil_create(gml);
 }
 
