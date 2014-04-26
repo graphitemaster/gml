@@ -49,14 +49,14 @@ typedef struct {
 
 /* A function is just a named lambda */
 typedef struct {
-    const char   *name;
+    char         *name;
     ast_lambda_t  impl;
 } ast_function_t;
 
 /* A decl optionally contains an initializer */
 typedef struct {
-    const char *name;
-    ast_t      *initializer;
+    char  *name;
+    ast_t *initializer;
 } ast_decl_t;
 
 struct ast_s {
@@ -64,9 +64,9 @@ struct ast_s {
     gml_position_t position;
 
     union {
-        const char    *ident;
-        const char    *atom;
-        const char    *string;
+        char          *ident;
+        char          *atom;
+        char          *string;
         list_t        *array;
         list_t        *ifstmt;
         list_t        *toplevel;

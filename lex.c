@@ -22,7 +22,8 @@ lex_t *lex_create(const char *filename, const char *source) {
 }
 
 void lex_destroy(lex_t *lex) {
-    if (!lex) return;
+    if (lex->token)
+        free(lex->token->string);
     free(lex->token);
     free(lex);
 }
@@ -94,6 +95,8 @@ static lex_token_t *lex_emit(lex_t *lex, lex_token_class_t class) {
     lex->buffer[lex->size] = '\0';
 
     /* Destroy old */
+    if (lex->token)
+        free(lex->token->string);
     free(lex->token);
 
     /* Create new and replace */

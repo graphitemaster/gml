@@ -1,5 +1,6 @@
 #include "parse.h"
 #include <stdlib.h>
+#include <string.h>
 
 void gml_error(gml_position_t *position, const char *format, ...);
 
@@ -40,6 +41,10 @@ const char *ast_classname(ast_class_t class) {
 
 static lex_token_t *parse_token(parse_t *parse) {
     return parse->lex->token;
+}
+
+static char *parse_token_string(parse_t *parse) {
+    return strdup(parse_token(parse)->string);
 }
 
 static gml_position_t *parse_position(parse_t *parse) {
@@ -95,6 +100,17 @@ static void parse_destroy_ast(ast_t *ast) {
 
     list_iterator_t *it;
     switch (ast->class) {
+        case AST_IDENT:
+            free(ast->ident);
+            break;
+
+        case AST_ATOM:
+            free(ast->atom);
+            break;
+
+        case AST_STRING:
+            free(ast->string);
+
         case AST_ARRAY:
             it = list_iterator_create(ast->array);
             while (!list_iterator_end(it))
@@ -133,7 +149,7 @@ static void parse_destroy_ast(ast_t *ast) {
         case AST_LAMBDA:
             it = list_iterator_create(ast->lambda.formals);
             while (!list_iterator_end(it))
-                parse_destroy_ast(list_iterator_next(it));
+                free(list_iterator_next(it));
             list_iterator_destroy(it);
             list_destroy(ast->lambda.formals);
             it = list_iterator_create(ast->lambda.body);
@@ -179,10 +195,12 @@ static void parse_destroy_ast(ast_t *ast) {
             break;
 
         case AST_DECLVAR:
+            free(ast->vardecl.name);
             parse_destroy_ast(ast->vardecl.initializer);
             break;
 
         case AST_DECLFUN:
+            free(ast->fundecl.name);
             it = list_iterator_create(ast->fundecl.impl.formals);
             while (!list_iterator_end(it))
                 parse_destroy_ast(list_iterator_next(it));
@@ -263,7 +281,7 @@ static ast_t *parse_expression_primary(parse_t *parse) {
         ast = parse_literal(parse);
     else if (parse_match(parse, LEX_TOKEN_IDENTIFIER)) {
         ast        = ast_class_create(AST_IDENT, *parse_position(parse));
-        ast->ident = parse_token(parse)->string;
+        ast->ident = parse_token_string(parse);
         parse_skip(parse);
     } else if (parse_matchskip(parse, LEX_TOKEN_FN)) {
         ast                 = ast_class_create(AST_LAMBDA, *parse_position(parse));
@@ -306,7 +324,7 @@ static ast_t *parse_expression_primary(parse_t *parse) {
         ast_t *subscript = ast_class_create(AST_SUBSCRIPT, ast->position);
         ast_t *key       = ast_class_create(AST_ATOM, *parse_position(parse));
         parse_expect(parse, LEX_TOKEN_IDENTIFIER);
-        key->atom = parse_token(parse)->string;
+        key->atom = parse_token_string(parse);
         parse_skip(parse);
         subscript->subscript.expr = ast;
         subscript->subscript.key  = key;
@@ -361,7 +379,7 @@ static list_t *parse_formals(parse_t *parse) {
     parse_expectskip(parse, LEX_TOKEN_LPAREN);
     while (!parse_match(parse, LEX_TOKEN_RPAREN)) {
         parse_expect(parse, LEX_TOKEN_IDENTIFIER);
-        list_push(formals, (void*)parse_token(parse)->string);
+        list_push(formals, parse_token_string(parse));
         parse_skip(parse);
         if (!parse_matchskip(parse, LEX_TOKEN_COMMA))
             break;
@@ -378,11 +396,11 @@ static ast_t *parse_simpleliteral(parse_t *parse) {
         parse_skip(parse);
     } else if (parse_match(parse, LEX_TOKEN_ATOM)) {
         ast->class  = AST_ATOM;
-        ast->atom   = parse_token(parse)->string;
+        ast->atom   = parse_token_string(parse);
         parse_skip(parse);
     } else if (parse_match(parse, LEX_TOKEN_STRING)) {
         ast->class  = AST_STRING;
-        ast->string = parse_token(parse)->string;
+        ast->string = parse_token_string(parse);
         parse_skip(parse);
     } else {
         gml_error(parse_position(parse), "Expected number, string or atom.");
@@ -447,7 +465,7 @@ static ast_t *parse_decl_var(parse_t *parse) {
     /* var name */
     parse_expectskip(parse, LEX_TOKEN_VAR);
     parse_expect(parse, LEX_TOKEN_IDENTIFIER);
-    ast->vardecl.name = parse_token(parse)->string;
+    ast->vardecl.name = parse_token_string(parse);
     parse_skip(parse);
 
     /* optional assignment */
@@ -464,7 +482,7 @@ static ast_t *parse_decl_fun(parse_t *parse) {
     /* function name */
     parse_expectskip(parse, LEX_TOKEN_FUN);
     parse_expect(parse, LEX_TOKEN_IDENTIFIER);
-    ast->fundecl.name = parse_token(parse)->string;
+    ast->fundecl.name = parse_token_string(parse);
     parse_skip(parse);
 
     /* argument list */
