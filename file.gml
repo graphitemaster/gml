@@ -1,6 +1,6 @@
 #!/usr/bin/gml
 
-fun triangle(n) {
+fn triangle(n) {
     y = n;
     while (y >= 0) {
         i = 0;

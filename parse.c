@@ -517,7 +517,7 @@ static ast_t *parse_decl_fun(parse_t *parse) {
     ast_t *ast = ast_class_create(AST_DECLFUN, position);
 
     /* function name */
-    parse_expectskip(parse, LEX_TOKEN_FUN);
+    parse_expectskip(parse, LEX_TOKEN_FN);
     parse_expect(parse, LEX_TOKEN_IDENTIFIER);
     ast->fundecl.name = parse_token_string(parse);
     parse_skip(parse);
@@ -564,7 +564,7 @@ static ast_t *parse_statement(parse_t *parse) {
     ast_t *statement;
     if (parse_match(parse, LEX_TOKEN_VAR))
         statement = parse_decl_var(parse);
-    else if (parse_match(parse, LEX_TOKEN_FUN))
+    else if (parse_match(parse, LEX_TOKEN_FN))
         return parse_decl_fun(parse);
     else if (parse_match(parse, LEX_TOKEN_IF))
         return parse_if(parse);

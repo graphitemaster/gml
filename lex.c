@@ -116,7 +116,6 @@ static lex_token_t *lex_ident(lex_t *lex) {
         lex_token_class_t class;
     } keywords[] = {
         { "var",    LEX_TOKEN_VAR    },
-        { "fun",    LEX_TOKEN_FUN    },
         { "fn",     LEX_TOKEN_FN     },
         { "same",   LEX_TOKEN_SAME   },
         { "if",     LEX_TOKEN_IF     },
@@ -280,7 +279,6 @@ const char *lex_token_classname(lex_token_class_t class) {
         case LEX_TOKEN_POSTINC:     return "`++'";
         case LEX_TOKEN_ARROW:       return "`=>'";
         case LEX_TOKEN_VAR:         return "(keyword `var')";
-        case LEX_TOKEN_FUN:         return "(keyword `fun')";
         case LEX_TOKEN_FN:          return "(keyword `fn')";
         case LEX_TOKEN_SAME:        return "(keyword `same')";
         case LEX_TOKEN_IF:          return "(keyword `if')";
