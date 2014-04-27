@@ -524,7 +524,10 @@ static ast_t *parse_decl_fun(parse_t *parse) {
 
     /* argument list */
     ast->fundecl.impl.formals = parse_formals(parse);
-    ast->fundecl.impl.body    = parse_block(parse);
+    if (parse_match(parse, LEX_TOKEN_ARROW))
+        ast->fundecl.impl.body = parse_arrow(parse);
+    else
+        ast->fundecl.impl.body = parse_block(parse);
     return ast;
 }
 

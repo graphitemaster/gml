@@ -23,3 +23,7 @@ fn triangle(n) {
 }
 
 triangle(16);
+
+fn join(x) => reduce(fn(x, y) => x + y, x)
+
+print(join(["hello", " world"]));
