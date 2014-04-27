@@ -36,6 +36,7 @@ const char *ast_classname(ast_class_t class) {
         case AST_TOPLEVEL:   return "top level";
         case AST_UNARY:      return "unary";
         case AST_WHILE:      return "while statement";
+        case AST_FOR:        return "for statement";
     }
     return "unknown";
 }
@@ -221,6 +222,20 @@ static void parse_destroy_ast(ast_t *ast) {
                 parse_destroy_ast(list_iterator_next(it));
             list_iterator_destroy(it);
             list_destroy(ast->toplevel);
+            break;
+
+        case AST_FOR:
+            it = list_iterator_create(ast->forstmt.impl.formals);
+            while (!list_iterator_end(it))
+                parse_destroy_ast(list_iterator_next(it));
+            list_iterator_destroy(it);
+            list_destroy(ast->forstmt.impl.formals);
+            it = list_iterator_create(ast->forstmt.impl.body);
+            while (!list_iterator_end(it))
+                parse_destroy_ast(list_iterator_next(it));
+            list_iterator_destroy(it);
+            list_destroy(ast->forstmt.impl.body);
+            parse_destroy_ast(ast->forstmt.expr);
             break;
 
         default:
@@ -562,6 +577,22 @@ static ast_t *parse_while(parse_t *parse) {
     ast->whilestmt.body      = parse_block(parse);
     return ast;
 }
+static ast_t *parse_for(parse_t *parse) {
+    ast_t *ast = ast_class_create(AST_FOR, *parse_position(parse));
+    parse_expectskip(parse, LEX_TOKEN_FOR);
+    ast->forstmt.impl.formals = list_create();
+    while (!parse_match(parse, LEX_TOKEN_IN)) {
+        parse_expect(parse, LEX_TOKEN_IDENTIFIER);
+        list_push(ast->forstmt.impl.formals, parse_token_string(parse));
+        parse_skip(parse);
+        if (!parse_matchskip(parse, LEX_TOKEN_COMMA))
+            break;
+    }
+    parse_expectskip(parse, LEX_TOKEN_IN);
+    ast->forstmt.expr      = parse_expression(parse);
+    ast->forstmt.impl.body = parse_block(parse);
+    return ast;
+}
 
 static ast_t *parse_statement(parse_t *parse) {
     ast_t *statement;
@@ -573,6 +604,8 @@ static ast_t *parse_statement(parse_t *parse) {
         return parse_if(parse);
     else if (parse_match(parse, LEX_TOKEN_WHILE))
         return parse_while(parse);
+    else if (parse_match(parse, LEX_TOKEN_FOR))
+        return parse_for(parse);
     else
         statement = parse_expression(parse);
     parse_expectskip(parse, LEX_TOKEN_SEMICOLON);

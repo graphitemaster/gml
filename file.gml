@@ -1,29 +1,17 @@
 #!/usr/bin/gml
 
-fn triangle(n) {
-    y = n;
-    while (y >= 0) {
-        i = 0;
-        while (i < y) {
-            print(" ");
-            i++;
-        }
-        x = 0;
-        while (x + y < n) {
-            if (x & y) {
-                print("  ");
-            } else {
-                print("**");
-            }
-            x++;
-        }
-        y--;
-        print("\n");
-    }
-}
+a = [ [ 1, 2 ], [3, 4] ];
+a = a + a;
+a = a + a;
+a = a + a;
+a = a + a;
+a = a + a;
 
-triangle(16);
+a = filter(fn(x) => x == [1, 2], a);
+a = reduce(fn(x, y) => x, a);
 
-fn join(x) => reduce(fn(x, y) => x + y, x)
+println(a);
 
-print(join(["hello", " world"]));
+
+// cubes produced from even numbers in the range (0, 10)
+// when sumed = 800

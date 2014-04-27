@@ -47,6 +47,8 @@ typedef enum {
     LEX_TOKEN_WHILE,     /* while  */
     LEX_TOKEN_FN,        /* fn     */
     LEX_TOKEN_IS,        /* is     */
+    LEX_TOKEN_IN,        /* in     */
+    LEX_TOKEN_FOR        /* for    */
 } lex_token_class_t;
 
 typedef struct {

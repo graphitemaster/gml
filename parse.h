@@ -23,7 +23,8 @@ typedef enum {
     AST_WHILE,
     AST_DECLVAR,
     AST_DECLFUN,
-    AST_TOPLEVEL
+    AST_TOPLEVEL,
+    AST_FOR
 } ast_class_t;
 
 /*
@@ -46,6 +47,12 @@ typedef struct {
     list_t *formals;
     list_t *body;
 } ast_lambda_t;
+
+/* A for loop is composed of formals an expression and a body */
+typedef struct {
+    ast_lambda_t impl;
+    ast_t       *expr;
+} ast_for_t;
 
 /* A function is just a named lambda */
 typedef struct {
@@ -73,6 +80,7 @@ struct ast_s {
         list_t        *table;
         double         number;
         ast_cond_t     whilestmt;
+        ast_for_t      forstmt;
         ast_cond_t     ifclause;
         ast_field_t    subscript;
         ast_field_t    dictentry;

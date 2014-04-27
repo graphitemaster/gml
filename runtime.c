@@ -1189,12 +1189,90 @@ static gml_value_t gml_eval_while(gml_state_t *gml, ast_t *expr, gml_env_t *env)
     return result;
 }
 
+static gml_value_t gml_eval_for_type(gml_state_t *gml, list_t *formals, list_t *body, gml_value_t value, gml_env_t *env) {
+    size_t      i;
+    size_t      nformals  = list_length(formals);
+    size_t      nelements = 0;
+    gml_value_t result;
+    list_t     *keys;
+
+    switch (gml_value_typeof(gml, value)) {
+        case GML_TYPE_ARRAY:
+            nelements = gml_array_length(gml, value);
+            for (i = 0; i < nelements; i += nformals) {
+                for (size_t j = 0; j < nformals && i + j < nelements; j++) {
+                    const char *name = list_at(formals, j);
+                    gml_env_bind(env, name, gml_array_get(gml, value, i + j));
+                }
+                result = gml_eval_block(gml, body, env);
+            }
+            return result;
+
+        case GML_TYPE_STRING:
+            nelements = gml_string_length(gml, value);
+            for (i = 0; i < nelements; i += nformals) {
+                for (size_t j = 0; j < nformals && i + j < nelements; j++) {
+                    const char *name = list_at(formals, j);
+                    gml_env_bind(env, name, gml_string_substring(gml, value, i + j, 1));
+                }
+                result = gml_eval_block(gml, body, env);
+            }
+            return result;
+
+        case GML_TYPE_TABLE:
+            keys      = gml_table_keys(gml, value);
+            nelements = list_length(keys);
+            for (i = 0; i < nelements; i += nformals) {
+                for (size_t j = 0; j < nformals && i + j < nelements; j++) {
+                    const char  *name = list_at(formals, j);
+                    gml_value_t  key  = *(gml_value_t*)list_at(keys, i + j);
+                    gml_value_t  val  = gml_table_get(gml, value, key);
+                    gml_value_t  pair = gml_array_create(gml, (gml_value_t[]) { key, val }, 2);
+                    gml_env_bind(env, name, pair);
+                }
+                result = gml_eval_block(gml, body, env);
+            }
+            return result;
+
+        default:
+            break;
+    }
+
+    return gml_nil_create(gml);
+}
+
+static gml_value_t gml_eval_for(gml_state_t *gml, ast_t *ast, gml_env_t *env) {
+    gml_value_t value   = gml_nil_create(gml);
+    list_t     *formals = ast->forstmt.impl.formals;
+    list_t     *body    = ast->forstmt.impl.body;
+    ast_t      *expr    = ast->forstmt.expr;
+
+    switch (expr->class) {
+        case AST_ARRAY:
+            value = gml_eval_array(gml, expr, env);
+            return gml_eval_for_type(gml, formals, body, value, env);
+        case AST_STRING:
+            value = gml_string_create(gml, expr->string);
+            return gml_eval_for_type(gml, formals, body, value, env);
+        case AST_TABLE:
+            value = gml_eval_table(gml, expr, env);
+            return gml_eval_for_type(gml, formals, body, value, env);
+        case AST_CALL:
+            value = gml_eval_call(gml, expr, env);
+            return gml_eval_for_type(gml, formals, body, value, env);
+        default:
+            break;
+    }
+    return gml_nil_create(gml);
+}
+
 static gml_value_t gml_eval_statement(gml_state_t *gml, ast_t *expr, gml_env_t *env) {
     switch (expr->class) {
         case AST_DECLFUN: return gml_eval_declfun(gml, expr, env);
         case AST_DECLVAR: return gml_eval_declvar(gml, expr, env);
         case AST_IF:      return gml_eval_if(gml, expr, env);
         case AST_WHILE:   return gml_eval_while(gml, expr, env);
+        case AST_FOR:     return gml_eval_for(gml, expr, env);
         default:
             return gml_nil_create(gml);
     }
@@ -1218,6 +1296,7 @@ static gml_value_t gml_eval(gml_state_t *gml, ast_t *expr, gml_env_t *env) {
         case AST_DECLVAR:   return gml_eval_statement(gml, expr, env);
         case AST_IF:        return gml_eval_statement(gml, expr, env);
         case AST_WHILE:     return gml_eval_statement(gml, expr, env);
+        case AST_FOR:       return gml_eval_statement(gml, expr, env);
         default:
             return gml_nil_create(gml);
     }

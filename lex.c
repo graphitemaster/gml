@@ -121,7 +121,9 @@ static lex_token_t *lex_ident(lex_t *lex) {
         { "if",     LEX_TOKEN_IF    },
         { "elif",   LEX_TOKEN_ELIF  },
         { "else",   LEX_TOKEN_ELSE  },
-        { "while",  LEX_TOKEN_WHILE }
+        { "while",  LEX_TOKEN_WHILE },
+        { "in",     LEX_TOKEN_IN    },
+        { "for",    LEX_TOKEN_FOR   }
     };
     for (size_t i = 0; i < sizeof(keywords)/sizeof(*keywords); i++)
         if (!strcmp(lex->buffer, keywords[i].name))
@@ -285,6 +287,8 @@ const char *lex_token_classname(lex_token_class_t class) {
         case LEX_TOKEN_ELIF:        return "(keyword `elif')";
         case LEX_TOKEN_ELSE:        return "(keyword `else')";
         case LEX_TOKEN_WHILE:       return "(keyword `while')";
+        case LEX_TOKEN_IN:          return "(keyword `in')";
+        case LEX_TOKEN_FOR:         return "(keyword `for')";
     }
     return "<unknown>";
 }
