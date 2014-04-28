@@ -1466,8 +1466,7 @@ gml_value_t gml_run_file(gml_state_t *gml, const char *filename) {
 
 gml_value_t gml_function_run(gml_state_t *gml, gml_value_t function, gml_value_t *args, size_t nargs) {
     gml_env_t *callenv = gml_env_push((gml_env_t*)gml_function_env(gml, function));
-    for (size_t i = 0; i < nargs; i++) {
+    for (size_t i = 0; i < nargs; i++)
         gml_env_bind(callenv, list_at(gml_function_formals(gml, function), i), args[i]);
-    }
     return gml_eval_block(gml, gml_function_body(gml, function), callenv);
 }

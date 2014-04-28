@@ -190,7 +190,7 @@ void ast_destroy(ast_t *ast) {
             free(ast->fundecl.name);
             it = list_iterator_create(ast->fundecl.impl.formals);
             while (!list_iterator_end(it))
-                ast_destroy(list_iterator_next(it));
+                free(list_iterator_next(it));
             list_iterator_destroy(it);
             list_destroy(ast->fundecl.impl.formals);
             it = list_iterator_create(ast->fundecl.impl.body);
@@ -209,7 +209,7 @@ void ast_destroy(ast_t *ast) {
         case AST_FOR:
             it = list_iterator_create(ast->forstmt.impl.formals);
             while (!list_iterator_end(it))
-                ast_destroy(list_iterator_next(it));
+                free(list_iterator_next(it));
             list_iterator_destroy(it);
             list_destroy(ast->forstmt.impl.formals);
             it = list_iterator_create(ast->forstmt.impl.body);
