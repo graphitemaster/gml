@@ -67,7 +67,11 @@ language.
 # Control
 
 Control flow is acomplished with `if` `else` `elif`, `while` and `for`.
-Scopes take on the form `{ }`.
+
+## blocks
+Code for control goes in blocks. Blocks take on the form `{ }` or `=>`.
+The latter is a short hand syntax for single statements or expressions
+only.
 
 ## while
 The while loop just executes the block of code so long as the condition
@@ -76,6 +80,9 @@ for the while loop evaluates `:true`. Here is an example.
 while i != 10 {
     i = i + 1;
 }
+
+# or with the short hand syntax since it's a single expression
+while i != 10 >= i = i + 1;
 ```
 
 ## for
@@ -133,11 +140,6 @@ fn(formals) {
 Function return values are implicit, the last statement in a function
 is the return value.
 
-Anonymous functions can also take on short hand syntax if they only
-contain a single expression:
-```
-fn(formals) => expr
-```
 
 The following two are equivalent:
 ```
