@@ -36,6 +36,10 @@ typedef enum {
     LEX_TOKEN_AND,       /* &&     */
     LEX_TOKEN_BITAND,    /* &      */
     LEX_TOKEN_BITOR,     /* |      */
+    LEX_TOKEN_BITLSHIFT, /* <<     */
+    LEX_TOKEN_BITRSHIFT, /* >>     */
+    LEX_TOKEN_BITNOT,    /* ~      */
+    LEX_TOKEN_BITXOR,    /* ^      */
     LEX_TOKEN_NOT,       /* !      */
     LEX_TOKEN_ARROW,     /* =>     */
     LEX_TOKEN_VAR,       /* var    */

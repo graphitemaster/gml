@@ -25,7 +25,7 @@ primitive operations (like concatenation, folding, etc).
 # Operators
 * Binary operators: `+ - * /`
 * Logical operators: `&& || !`
-* Bitwise operators: `& |`
+* Bitwise operators: `& | << >> ~ ^`
 * Unary operators: `- +`
 * Comparision operators: `< > <= >= == != is`
 

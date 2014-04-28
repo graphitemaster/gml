@@ -253,24 +253,34 @@ static list_t *parse_formals(parse_t *parse);
 
 static int parse_precedence(lex_token_class_t class) {
     switch (class) {
-        case LEX_TOKEN_ASSIGN:  return 0;
-        case LEX_TOKEN_AND:     return 1;
-        case LEX_TOKEN_OR:      return 1;
-        case LEX_TOKEN_BITAND:  return 2;
-        case LEX_TOKEN_BITOR:   return 2;
-        case LEX_TOKEN_EQUAL:   return 2;
-        case LEX_TOKEN_NEQUAL:  return 2;
-        case LEX_TOKEN_LESS:    return 3;
-        case LEX_TOKEN_GREATER: return 3;
-        case LEX_TOKEN_LEQUAL:  return 3;
-        case LEX_TOKEN_GEQUAL:  return 3;
-        case LEX_TOKEN_IS:      return 4;
-        case LEX_TOKEN_MINUS:   return 5;
-        case LEX_TOKEN_PLUS:    return 5;
-        case LEX_TOKEN_MUL:     return 6;
-        case LEX_TOKEN_DIV:     return 6;
-        case LEX_TOKEN_MOD:     return 6;
-        default:                return -1;
+        case LEX_TOKEN_ASSIGN:    return 0;
+
+        case LEX_TOKEN_OR:        return 1;
+        case LEX_TOKEN_AND:       return 2;
+
+        case LEX_TOKEN_BITOR:     return 3;
+        case LEX_TOKEN_BITXOR:    return 4;
+        case LEX_TOKEN_BITAND:    return 5;
+
+        case LEX_TOKEN_IS:        return 6;
+        case LEX_TOKEN_EQUAL:     return 6;
+        case LEX_TOKEN_NEQUAL:    return 6;
+
+        case LEX_TOKEN_LESS:      return 7;
+        case LEX_TOKEN_GREATER:   return 7;
+        case LEX_TOKEN_LEQUAL:    return 7;
+        case LEX_TOKEN_GEQUAL:    return 7;
+
+        case LEX_TOKEN_BITLSHIFT: return 8;
+        case LEX_TOKEN_BITRSHIFT: return 8;
+
+        case LEX_TOKEN_MINUS:     return 9;
+        case LEX_TOKEN_PLUS:      return 9;
+        case LEX_TOKEN_MUL:       return 9;
+        case LEX_TOKEN_DIV:       return 9;
+        case LEX_TOKEN_MOD:       return 9;
+
+        default:                  return -1;
     }
 }
 static ast_t *parse_call(parse_t *parse, ast_t *ast) {
@@ -337,9 +347,13 @@ static ast_t *parse_expression_primary(parse_t *parse) {
         parse_skip(parse);
     } else if (parse_matchskip(parse, LEX_TOKEN_FN)) {
         ast = parse_lambda(parse);
-    } else if (parse_matchskip(parse, LEX_TOKEN_NOT)) {
+    } else if (parse_match(parse, LEX_TOKEN_MINUS) || parse_match(parse, LEX_TOKEN_PLUS)
+           ||  parse_match(parse, LEX_TOKEN_NOT)   || parse_match(parse, LEX_TOKEN_BITNOT)) {
+        /* Unary operations can be one of - + ! or ~ */
+        lex_token_class_t op = parse_token(parse)->class;
+        parse_skip(parse);
         ast                 = ast_class_create(AST_UNARY, *parse_position(parse));
-        ast->unary.op       = LEX_TOKEN_NOT;
+        ast->unary.op       = op;
         ast->unary.expr     = parse_expression(parse);
     } else if (parse_matchskip(parse, LEX_TOKEN_LPAREN)) {
         ast = parse_expression(parse);
@@ -396,6 +410,15 @@ static ast_t *parse_expression_last(parse_t *parse, ast_t *lhs, int minprec) {
                 case LEX_TOKEN_BITOR:
                     lhs->number = (uint32_t)lhs->number | (uint32_t)rhs->number;
                     continue;
+                case LEX_TOKEN_BITLSHIFT:
+                    lhs->number = (uint32_t)lhs->number << (uint32_t)rhs->number;
+                    continue;
+                case LEX_TOKEN_BITRSHIFT:
+                    lhs->number = (uint32_t)lhs->number >> (uint32_t)rhs->number;
+                    continue;
+                case LEX_TOKEN_BITXOR:
+                    lhs->number = (uint32_t)lhs->number ^ (uint32_t)rhs->number;
+                    continue;
                 case LEX_TOKEN_LESS:
                     lhs->number = !!(lhs->number < rhs->number);
                     continue;
@@ -413,9 +436,6 @@ static ast_t *parse_expression_last(parse_t *parse, ast_t *lhs, int minprec) {
                     continue;
                 case LEX_TOKEN_NEQUAL:
                     lhs->number = lhs->number != rhs->number;
-                    continue;
-                case LEX_TOKEN_NOT:
-                    lhs->number = !lhs->number;
                     continue;
                 default:
                     break;

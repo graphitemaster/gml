@@ -1091,6 +1091,9 @@ static gml_value_t gml_eval_binary(gml_state_t *gml, ast_t *expr, gml_env_t *env
         case LEX_TOKEN_GEQUAL:
         case LEX_TOKEN_BITAND:
         case LEX_TOKEN_BITOR:
+        case LEX_TOKEN_BITLSHIFT:
+        case LEX_TOKEN_BITRSHIFT:
+        case LEX_TOKEN_BITXOR:
             gml_typecheck(gml, expr->position, vleft, gml_value_typeof(gml, vright));
 
             /* String concatenation */
@@ -1108,17 +1111,20 @@ static gml_value_t gml_eval_binary(gml_state_t *gml, ast_t *expr, gml_env_t *env
             nright = gml_number_create(gml, vright);
 
             switch (expr->binary.op) {
-                case LEX_TOKEN_PLUS:    return gml_number_create(gml, nleft + nright);
-                case LEX_TOKEN_MINUS:   return gml_number_create(gml, nleft - nright);
-                case LEX_TOKEN_MUL:     return gml_number_create(gml, nleft * nright);
-                case LEX_TOKEN_DIV:     return gml_number_create(gml, nleft / nright);
-                case LEX_TOKEN_MOD:     return gml_number_create(gml, (uint32_t)nleft % (uint32_t)nright);
-                case LEX_TOKEN_BITAND:  return gml_number_create(gml, (uint32_t)nleft & (uint32_t)nright);
-                case LEX_TOKEN_BITOR:   return gml_number_create(gml, (uint32_t)nleft | (uint32_t)nright);
-                case LEX_TOKEN_LESS:    return nleft <  nright ? vtrue : vfalse;
-                case LEX_TOKEN_GREATER: return nleft >  nright ? vtrue : vfalse;
-                case LEX_TOKEN_LEQUAL:  return nleft <= nright ? vtrue : vfalse;
-                case LEX_TOKEN_GEQUAL:  return nleft >= nright ? vtrue : vfalse;
+                case LEX_TOKEN_PLUS:      return gml_number_create(gml, nleft + nright);
+                case LEX_TOKEN_MINUS:     return gml_number_create(gml, nleft - nright);
+                case LEX_TOKEN_MUL:       return gml_number_create(gml, nleft * nright);
+                case LEX_TOKEN_DIV:       return gml_number_create(gml, nleft / nright);
+                case LEX_TOKEN_MOD:       return gml_number_create(gml, (uint32_t)nleft %  (uint32_t)nright);
+                case LEX_TOKEN_BITAND:    return gml_number_create(gml, (uint32_t)nleft &  (uint32_t)nright);
+                case LEX_TOKEN_BITOR:     return gml_number_create(gml, (uint32_t)nleft |  (uint32_t)nright);
+                case LEX_TOKEN_BITXOR:    return gml_number_create(gml, (uint32_t)nleft ^  (uint32_t)nright);
+                case LEX_TOKEN_BITLSHIFT: return gml_number_create(gml, (uint32_t)nleft << (uint32_t)nright);
+                case LEX_TOKEN_BITRSHIFT: return gml_number_create(gml, (uint32_t)nleft >> (uint32_t)nright);
+                case LEX_TOKEN_LESS:      return nleft <  nright ? vtrue : vfalse;
+                case LEX_TOKEN_GREATER:   return nleft >  nright ? vtrue : vfalse;
+                case LEX_TOKEN_LEQUAL:    return nleft <= nright ? vtrue : vfalse;
+                case LEX_TOKEN_GEQUAL:    return nleft >= nright ? vtrue : vfalse;
                 default:
                     gml_throw(true, "operation %s is not a binary operation",
                         lex_token_classname(expr->binary.op));
@@ -1141,11 +1147,38 @@ static gml_value_t gml_eval_binary(gml_state_t *gml, ast_t *expr, gml_env_t *env
 }
 
 static gml_value_t gml_eval_unary(gml_state_t *gml, ast_t *expr, gml_env_t *env) {
+    gml_value_t value;
+    gml_type_t  type;
+
     switch (expr->unary.op) {
         case LEX_TOKEN_NOT:
             if (gml_istrue(gml, gml_eval(gml, expr->unary.expr, env)))
                 return gml_false_create(gml);
             return gml_true_create(gml);
+        case LEX_TOKEN_PLUS:
+            return gml_eval(gml, expr->unary.expr, env);
+        case LEX_TOKEN_MINUS:
+            value = gml_eval(gml, expr->unary.expr, env);
+            type  = gml_value_typeof(gml, value);
+            if (type != GML_TYPE_NUMBER) {
+                gml_error(&expr->position, "invalid type `%s' in unary expression `%s'",
+                    gml_typename(gml, type),
+                    lex_token_classname(expr->unary.op));
+                gml_abort(gml);
+            }
+            value = -value;
+            return value;
+        case LEX_TOKEN_BITNOT:
+            value = gml_eval(gml, expr->unary.expr, env);
+            type  = gml_value_typeof(gml, value);
+            if (type != GML_TYPE_NUMBER) {
+                gml_error(&expr->position, "invalid type `%s' in unary expression `%s'",
+                    gml_typename(gml, type),
+                    lex_token_classname(expr->unary.op));
+                gml_abort(gml);
+            }
+            value = ~(uint32_t)value;
+            return value;
         default:
             gml_throw(true, "operation %s is not a unary operation",
                 lex_token_classname(expr->binary.op));
