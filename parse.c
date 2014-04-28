@@ -377,46 +377,46 @@ static ast_t *parse_expression_last(parse_t *parse, ast_t *lhs, int minprec) {
             switch (op) {
                 case LEX_TOKEN_PLUS:
                     lhs->number += rhs->number;
-                    return lhs;
+                    continue;
                 case LEX_TOKEN_MINUS:
                     lhs->number -= rhs->number;
-                    return lhs;
+                    continue;
                 case LEX_TOKEN_MUL:
                     lhs->number *= rhs->number;
-                    return lhs;
+                    continue;
                 case LEX_TOKEN_DIV:
                     lhs->number /= rhs->number;
-                    return lhs;
+                    continue;
                 case LEX_TOKEN_MOD:
                     lhs->number = (uint32_t)lhs->number % (uint32_t)rhs->number;
-                    return lhs;
+                    continue;
                 case LEX_TOKEN_BITAND:
                     lhs->number = (uint32_t)lhs->number & (uint32_t)rhs->number;
-                    return lhs;
+                    continue;
                 case LEX_TOKEN_BITOR:
                     lhs->number = (uint32_t)lhs->number | (uint32_t)rhs->number;
-                    return lhs;
+                    continue;
                 case LEX_TOKEN_LESS:
                     lhs->number = !!(lhs->number < rhs->number);
-                    return lhs;
+                    continue;
                 case LEX_TOKEN_GREATER:
                     lhs->number = !!(lhs->number > rhs->number);
-                    return lhs;
+                    continue;
                 case LEX_TOKEN_LEQUAL:
                     lhs->number = !!(lhs->number <= rhs->number);
-                    return lhs;
+                    continue;
                 case LEX_TOKEN_GEQUAL:
                     lhs->number = !!(lhs->number >= rhs->number);
-                    return lhs;
+                    continue;
                 case LEX_TOKEN_EQUAL:
                     lhs->number = lhs->number == rhs->number;
-                    return lhs;
+                    continue;
                 case LEX_TOKEN_NEQUAL:
                     lhs->number = lhs->number != rhs->number;
-                    return lhs;
+                    continue;
                 case LEX_TOKEN_NOT:
                     lhs->number = !lhs->number;
-                    return lhs;
+                    continue;
                 default:
                     break;
             }
