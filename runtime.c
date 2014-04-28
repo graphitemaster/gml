@@ -921,10 +921,11 @@ static gml_value_t gml_eval_call(gml_state_t *gml, ast_t *expr, gml_env_t *env) 
 static gml_value_t gml_eval_array(gml_state_t *gml, ast_t *expr, gml_env_t *env) {
     size_t       length   = list_length(expr->array);
     gml_value_t *elements = malloc(sizeof(gml_value_t) * length);
-
     for (size_t i = 0; i < length; i++)
         elements[i] = gml_eval(gml, list_at(expr->array, i), env);
-    return gml_array_create(gml, elements, length);
+    gml_value_t value = gml_array_create(gml, elements, length);
+    free(elements);
+    return value;
 }
 
 static gml_value_t gml_eval_table(gml_state_t *gml, ast_t *expr, gml_env_t *env) {
@@ -1360,6 +1361,9 @@ size_t gml_dump(gml_state_t *gml, gml_value_t value, char *buffer, size_t length
 }
 
 static gml_value_t gml_runbuffer(gml_state_t *gml, const char *filename, const char *source) {
+    if (gml->parse && gml->ast)
+        parse_destroy(gml->parse, gml->ast);
+
     gml->parse = parse_create(filename, source);
     if (setjmp(gml->escape) == 0)
         if ((gml->ast = parse_run(gml->parse)))

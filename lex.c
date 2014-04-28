@@ -95,9 +95,9 @@ static lex_token_t *lex_emit(lex_t *lex, lex_token_class_t class) {
     lex->buffer[lex->size] = '\0';
 
     /* Destroy old */
-    //if (lex->token)
-    //    free(lex->token->string);
-    //free(lex->token);
+    if (lex->token)
+        free(lex->token->string);
+    free(lex->token);
 
     /* Create new and replace */
     lex_token_t *token = malloc(sizeof(*token));

@@ -103,25 +103,21 @@ static void parse_destroy_ast(ast_t *ast) {
     list_iterator_t *it;
     switch (ast->class) {
         case AST_IDENT:
-            //free(ast->ident);
+            free(ast->ident);
             break;
-
         case AST_ATOM:
             free(ast->atom);
             break;
-
         case AST_STRING:
             free(ast->string);
             break;
-
         case AST_ARRAY:
             it = list_iterator_create(ast->array);
             while (!list_iterator_end(it))
                 parse_destroy_ast(list_iterator_next(it));
             list_iterator_destroy(it);
-            //list_destroy(ast->array);
+            list_destroy(ast->array);
             break;
-
         case AST_TABLE:
             it = list_iterator_create(ast->table);
             while (!list_iterator_end(it))
@@ -129,26 +125,21 @@ static void parse_destroy_ast(ast_t *ast) {
             list_iterator_destroy(it);
             list_destroy(ast->table);
             break;
-
         case AST_TABLEENTRY:
             parse_destroy_ast(ast->dictentry.key);
             parse_destroy_ast(ast->dictentry.expr);
             break;
-
         case AST_BINARY:
             parse_destroy_ast(ast->binary.left);
             parse_destroy_ast(ast->binary.right);
             break;
-
         case AST_UNARY:
             parse_destroy_ast(ast->unary.expr);
             break;
-
         case AST_SUBSCRIPT:
             parse_destroy_ast(ast->subscript.key);
             parse_destroy_ast(ast->subscript.expr);
             break;
-
         case AST_LAMBDA:
             it = list_iterator_create(ast->lambda.formals);
             while (!list_iterator_end(it))
@@ -161,7 +152,6 @@ static void parse_destroy_ast(ast_t *ast) {
             list_iterator_destroy(it);
             list_destroy(ast->lambda.body);
             break;
-
         case AST_CALL:
             parse_destroy_ast(ast->call.callee);
             it = list_iterator_create(ast->call.args);
@@ -170,7 +160,6 @@ static void parse_destroy_ast(ast_t *ast) {
             list_iterator_destroy(it);
             list_destroy(ast->call.args);
             break;
-
         case AST_IF:
             it = list_iterator_create(ast->ifstmt);
             while (!list_iterator_end(it))
@@ -178,7 +167,6 @@ static void parse_destroy_ast(ast_t *ast) {
             list_iterator_destroy(it);
             list_destroy(ast->ifstmt);
             break;
-
         case AST_IFCLAUSE:
             parse_destroy_ast(ast->ifclause.condition);
             it = list_iterator_create(ast->ifclause.body);
@@ -187,7 +175,6 @@ static void parse_destroy_ast(ast_t *ast) {
             list_iterator_destroy(it);
             list_destroy(ast->ifclause.body);
             break;
-
         case AST_WHILE:
             parse_destroy_ast(ast->whilestmt.condition);
             it = list_iterator_create(ast->whilestmt.body);
@@ -196,12 +183,10 @@ static void parse_destroy_ast(ast_t *ast) {
             list_iterator_destroy(it);
             list_destroy(ast->whilestmt.body);
             break;
-
         case AST_DECLVAR:
             free(ast->vardecl.name);
             parse_destroy_ast(ast->vardecl.initializer);
             break;
-
         case AST_DECLFUN:
             free(ast->fundecl.name);
             it = list_iterator_create(ast->fundecl.impl.formals);
@@ -215,7 +200,6 @@ static void parse_destroy_ast(ast_t *ast) {
             list_iterator_destroy(it);
             list_destroy(ast->fundecl.impl.body);
             break;
-
         case AST_TOPLEVEL:
             it = list_iterator_create(ast->toplevel);
             while (!list_iterator_end(it))
@@ -223,7 +207,6 @@ static void parse_destroy_ast(ast_t *ast) {
             list_iterator_destroy(it);
             list_destroy(ast->toplevel);
             break;
-
         case AST_FOR:
             it = list_iterator_create(ast->forstmt.impl.formals);
             while (!list_iterator_end(it))
@@ -237,7 +220,6 @@ static void parse_destroy_ast(ast_t *ast) {
             list_destroy(ast->forstmt.impl.body);
             parse_destroy_ast(ast->forstmt.expr);
             break;
-
         default:
             break;
     }

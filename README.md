@@ -250,7 +250,6 @@ fn triangle(n) =>
 triangle(16);
 ```
 
-
 The `range` function allows you to construct an array of integers within
 some range.
 ```
