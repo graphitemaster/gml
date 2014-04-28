@@ -6,11 +6,13 @@
 
 static gml_value_t gml_builtin_print_impl(gml_state_t *gml, gml_value_t *args, size_t nargs, int nl) {
     char buffer[4096];
+    char *data;
     for (size_t i = 0; i < nargs; i++) {
         switch (gml_value_typeof(gml, args[i])) {
             case GML_TYPE_STRING:
-                snprintf(buffer, sizeof(buffer), "%s",
-                    gml_string_utf8data(gml, args[i]));
+                data = gml_string_utf8data(gml, args[i]);
+                snprintf(buffer, sizeof(buffer), "%s", data);
+                free(data);
                 break;
             default:
                 gml_dump(gml, args[i], buffer, sizeof(buffer));
@@ -226,7 +228,9 @@ static gml_value_t gml_builtin_range(gml_state_t *gml, gml_value_t *args, size_t
     gml_value_t *applied = malloc(sizeof(gml_value_t) * len);
     for (size_t i = 0; i < len; i++)
         applied[i] = gml_number_create(gml, beg++);
-    return gml_array_create(gml, applied, len);
+    gml_value_t value = gml_array_create(gml, applied, len);
+    free(applied);
+    return value;
 }
 
 static gml_value_t gml_builtin_filter(gml_state_t *gml, gml_value_t *args, size_t nargs) {
@@ -240,7 +244,9 @@ static gml_value_t gml_builtin_filter(gml_state_t *gml, gml_value_t *args, size_
         if (gml_istrue(gml, eval))
             applied[matched++] = current;
     }
-    return gml_array_create(gml, applied, matched);
+    gml_value_t value = gml_array_create(gml, applied, matched);
+    free(applied);
+    return value;
 }
 
 static gml_value_t gml_builtin_reduce(gml_state_t *gml, gml_value_t *args, size_t nargs) {
@@ -288,15 +294,17 @@ static gml_value_t gml_builtin_find(gml_state_t *gml, gml_value_t *args, size_t 
     if (a != b)
         return gml_nil_create(gml);
 
-    const char *stra;
-    const char *strb;
-    const char *strf;
-    size_t      find;
+    char  *stra;
+    char  *strb;
+    char  *strf;
+    size_t find;
     switch (a) {
         case GML_TYPE_STRING:
             stra = gml_string_utf8data(gml, args[0]);
             strb = gml_string_utf8data(gml, args[1]);
             strf = strstr(stra, strb);
+            free(stra);
+            free(strb);
             if (strf) {
                 size_t index = strf - stra;
                 return gml_number_create(gml, index);

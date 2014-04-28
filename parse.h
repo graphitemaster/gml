@@ -113,8 +113,10 @@ typedef struct {
 } parse_t;
 
 parse_t *parse_create(const char *filename, const char *source);
-void parse_destroy(parse_t *parse, ast_t *ast);
+void parse_destroy(parse_t *parse);
 ast_t *parse_run(parse_t *parse);
+
+void ast_destroy(ast_t *ast);
 const char *ast_classname(ast_class_t class);
 
 #endif

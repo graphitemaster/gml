@@ -180,7 +180,7 @@ struct gml_state_s {
     gml_env_t *global;
     gml_ht_t  *atoms;
     parse_t   *parse;
-    ast_t     *ast;
+    list_t    *asts;
     list_t    *objects;
     jmp_buf    escape;
     size_t     lambdaindex;
@@ -239,7 +239,7 @@ gml_state_t *gml_state_create(void) {
     state->global      = gml_env_create();
     state->atoms       = gml_ht_create(32);
     state->parse       = NULL;
-    state->ast         = NULL;
+    state->asts        = list_create();
     state->objects     = list_create();
     state->lambdaindex = 0;
     return state;
@@ -253,11 +253,15 @@ void gml_state_destroy(gml_state_t *state) {
         head->destroy(state, gml_value_box(state, head));
     }
     list_iterator_destroy(it);
-
     gml_env_destroy(state->global);
     gml_ht_destroy(state->atoms);
     list_destroy(state->objects);
-    parse_destroy(state->parse, state->ast);
+    it = list_iterator_create(state->asts);
+    while (!list_iterator_end(it))
+        ast_destroy(list_iterator_next(it));
+    list_iterator_destroy(it);
+    list_destroy(state->asts);
+    parse_destroy(state->parse);
     free(state);
 }
 
@@ -298,9 +302,9 @@ void gml_set_global(gml_state_t *gml, const char *name, gml_value_t value) {
     gml_value_t *oldp;
     if (gml_env_lookup(gml->global, name, &oldp)) {
         if (gml_value_typeof(gml, *oldp) != GML_TYPE_NUMBER) {
-            gml_header_t *head = gml_value_unbox(gml, *oldp);
-            head->destroy(gml, *oldp);
-            list_erase(gml->objects, head);
+            //gml_header_t *head = gml_value_unbox(gml, *oldp);
+            //head->destroy(gml, *oldp);
+            //list_erase(gml->objects, head);
         }
         *oldp = value;
     } else {
@@ -418,14 +422,16 @@ void gml_array_set(gml_state_t *gml, gml_value_t array, size_t index, gml_value_
 /* Runtime function */
 typedef struct {
     gml_header_t header;
-    const char  *name;
+    char        *name;
     list_t      *formals;
     list_t      *body;
     void        *env;
 } gml_function_t;
 
 void gml_function_destroy(gml_state_t *gml, gml_value_t value) {
-    free(gml_value_unbox(gml, value));
+    gml_function_t *function = (gml_function_t*)gml_value_unbox(gml, value);
+    free(function->name);
+    free(function);
 }
 
 gml_value_t gml_function_create(gml_state_t *gml, const char *name, list_t *formals, list_t *body, void *env) {
@@ -435,7 +441,7 @@ gml_value_t gml_function_create(gml_state_t *gml, const char *name, list_t *form
 
     fun->header.type    = GML_TYPE_FUNCTION;
     fun->header.destroy = &gml_function_destroy;
-    fun->name           = name;
+    fun->name           = strdup(name);
     fun->formals        = formals;
     fun->body           = body;
     fun->env            = env;
@@ -929,6 +935,8 @@ static gml_value_t gml_eval_call(gml_state_t *gml, ast_t *expr, gml_env_t *env) 
     gml_value_t callee   = gml_eval(gml, expr->call.callee, env);
     size_t      nargs    = list_length(expr->call.args);
     gml_type_t  calltype = gml_value_typeof(gml, callee);
+    list_t     *formals;
+    gml_value_t result;
 
     switch (calltype) {
         gml_env_t       *callenv;
@@ -936,9 +944,10 @@ static gml_value_t gml_eval_call(gml_state_t *gml, ast_t *expr, gml_env_t *env) 
 
         case GML_TYPE_FUNCTION:
             callenv = gml_env_push((gml_env_t*)gml_function_env(gml, callee));
+            formals = gml_function_formals(gml, callee);
             for (size_t i = 0; i < nargs; i++) {
                 gml_value_t value = gml_eval(gml, list_at(expr->call.args, i), env);
-                gml_env_bind(callenv, list_at(gml_function_formals(gml, callee), i), value);
+                gml_env_bind(callenv, list_at(formals, i), value);
             }
             return gml_eval_block(gml, gml_function_body(gml, callee), callenv);
 
@@ -947,7 +956,9 @@ static gml_value_t gml_eval_call(gml_state_t *gml, ast_t *expr, gml_env_t *env) 
                 return gml_nil_create(gml);
             for (size_t i = 0; i < nargs; i++)
                 actuals[i] = gml_eval(gml, list_at(expr->call.args, i), env);
-            return (gml_native_func(gml, callee))(gml, actuals, nargs);
+            result = gml_native_func(gml, callee)(gml, actuals, nargs);
+            free(actuals);
+            return result;
 
         default:
             gml_error(
@@ -987,9 +998,9 @@ static gml_value_t gml_eval_assign_variable(gml_state_t *gml, ast_t *expr, gml_e
     gml_value_t *old;
     if (gml_env_lookup(env, expr->binary.left->ident, &old)) {
         if (gml_value_typeof(gml, *old) != GML_TYPE_NUMBER) {
-            gml_header_t *head = gml_value_unbox(gml, *old);
-            head->destroy(gml, *old);
-            list_erase(gml->objects, head);
+            //gml_header_t *head = gml_value_unbox(gml, *old);
+            //head->destroy(gml, *old);
+            //list_erase(gml->objects, head);
         }
         *old = value;
     } else {
@@ -1200,7 +1211,7 @@ static gml_value_t gml_eval_lambda(gml_state_t *gml, ast_t *expr, gml_env_t *env
     char name[1024];
     snprintf(name, sizeof(name), "#lambda(%zu)", gml->lambdaindex++);
     return gml_function_create(gml,
-                               strdup(name),
+                               name,
                                expr->lambda.formals,
                                expr->lambda.body,
                                env);
@@ -1401,7 +1412,7 @@ size_t gml_dump(gml_state_t *gml, gml_value_t value, char *buffer, size_t length
             append("}");
             return offset;
         case GML_TYPE_NATIVE:
-            return snprintf(buffer, length, "<native-function:%p>", gml_native_func(gml, value));
+            return snprintf(buffer, length, "<native:%p>", gml_native_func(gml, value));
         case GML_TYPE_FUNCTION:
             return snprintf(buffer, length, "<function:%s>", gml_function_name(gml, value));
     }
@@ -1409,13 +1420,19 @@ size_t gml_dump(gml_state_t *gml, gml_value_t value, char *buffer, size_t length
 }
 
 static gml_value_t gml_runbuffer(gml_state_t *gml, const char *filename, const char *source) {
-    if (gml->parse && gml->ast)
-        parse_destroy(gml->parse, gml->ast);
+    if (gml->parse)
+        parse_destroy(gml->parse);
 
+    ast_t *ast;
     gml->parse = parse_create(filename, source);
-    if (setjmp(gml->escape) == 0)
-        if ((gml->ast = parse_run(gml->parse)))
-            return gml_eval(gml, gml->ast, gml->global);
+    if (setjmp(gml->escape) == 0) {
+        ast = parse_run(gml->parse);
+        if (ast) {
+            list_push(gml->asts, ast);
+            return gml_eval(gml, ast, gml->global);
+        }
+    }
+
     return gml_nil_create(gml);
 }
 
@@ -1430,13 +1447,15 @@ gml_value_t gml_run_file(gml_state_t *gml, const char *filename) {
     fseek(fp, 0, SEEK_END);
     size_t length = ftell(fp);
     fseek(fp, 0, SEEK_SET);
-    char *source = malloc(length);
+    char *source = malloc(length + 1);
     if (!source) {
         fclose(fp);
         return gml_nil_create(gml);
     }
+    source[length] = '\0';
     if (fread(source, 1, length, fp) != length) {
         fclose(fp);
+        free(source);
         return gml_nil_create(gml);
     }
     gml_value_t value = gml_runbuffer(gml, filename, source);
