@@ -268,7 +268,6 @@ static ast_t *parse_expression(parse_t *parse);
 static ast_t *parse_array(parse_t *parse);
 static ast_t *parse_dict(parse_t *parse);
 static ast_t *parse_literal(parse_t *parse);
-static list_t *parse_arrow(parse_t *parse);
 static list_t *parse_block(parse_t *parse);
 static list_t *parse_formals(parse_t *parse);
 
@@ -345,17 +344,14 @@ static ast_t *parse_subscript_sugar(parse_t *parse, ast_t *ast) {
 static ast_t *parse_lambda(parse_t *parse) {
     ast_t *ast = ast_class_create(AST_LAMBDA, *parse_position(parse));
     ast->lambda.formals = parse_formals(parse);
-    if (parse_match(parse, LEX_TOKEN_LBRACE))
-        ast->lambda.body = parse_block(parse);
-    else if (parse_match(parse, LEX_TOKEN_ARROW))
-        ast->lambda.body = parse_arrow(parse);
+    ast->lambda.body    = parse_block(parse);
     return ast;
 }
 static ast_t *parse_expression_primary(parse_t *parse) {
     ast_t *ast = NULL;
-    if (parse_matchliteral(parse))
+    if (parse_matchliteral(parse)) {
         ast = parse_literal(parse);
-    else if (parse_match(parse, LEX_TOKEN_IDENTIFIER)) {
+    } else if (parse_match(parse, LEX_TOKEN_IDENTIFIER)) {
         ast        = ast_class_create(AST_IDENT, *parse_position(parse));
         ast->ident = parse_token_string(parse);
         parse_skip(parse);
@@ -369,7 +365,7 @@ static ast_t *parse_expression_primary(parse_t *parse) {
         ast = parse_expression(parse);
         parse_expectskip(parse, LEX_TOKEN_RPAREN);
     } else {
-        gml_error(&ast->position, "Expected expression. %s", lex_token_classname(parse_token(parse)->class));
+        gml_error(parse_position(parse), "Expected expression.");
         longjmp(parse->escape, 1);
     }
 
@@ -485,17 +481,14 @@ static ast_t *parse_dict(parse_t *parse) {
 
 static list_t *parse_block(parse_t *parse) {
     list_t *statements = list_create();
+    if (parse_matchskip(parse, LEX_TOKEN_ARROW)) {
+        list_push(statements, (void*)parse_statement(parse));
+        return statements;
+    }
     parse_expectskip(parse, LEX_TOKEN_LBRACE);
     while (!parse_match(parse, LEX_TOKEN_RBRACE))
         list_push(statements, (void*)parse_statement(parse));
     parse_expectskip(parse, LEX_TOKEN_RBRACE);
-    return statements;
-}
-
-static list_t *parse_arrow(parse_t *parse) {
-    list_t *statements = list_create();
-    parse_expectskip(parse, LEX_TOKEN_ARROW);
-    list_push(statements, parse_expression(parse));
     return statements;
 }
 
