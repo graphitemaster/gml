@@ -233,43 +233,6 @@ void gml_arg_check(gml_state_t *gml, gml_value_t *args, size_t nargs, const char
     }
 }
 
-/* Garbage collection */
-static void gml_gc_mark(gml_header_t *header) {
-    if (header->marked)
-        return;
-    header->marked = 1;
-}
-
-static void gml_gc_markall(gml_state_t *gml) {
-    list_iterator_t *it = list_iterator_create(gml->objects);
-    while (!list_iterator_end(it))
-        gml_gc_mark(list_iterator_next(it));
-    list_iterator_destroy(it);
-}
-
-static void gml_gc_sweep(gml_state_t *gml) {
-    list_iterator_t *it = list_iterator_create(gml->objects);
-    while (!list_iterator_end(it)) {
-        gml_header_t *obj = list_iterator_next(it);
-        if (!obj->marked) {
-            obj->destroy(gml, gml_value_box(gml, obj));
-            list_erase(gml->objects, obj);
-        } else {
-            obj->marked = 0;
-        }
-    }
-    list_iterator_destroy(it);
-}
-
-static void gml_gc(gml_state_t *gml) {
-    size_t objects = list_length(gml->objects);
-    gml_gc_markall(gml);
-    gml_gc_sweep(gml);
-
-    size_t now = list_length(gml->objects);
-    printf("Collected %zu objects, %zu remaining\n", objects - now, now);
-}
-
 /* State runtime */
 gml_state_t *gml_state_create(void) {
     gml_state_t *state = malloc(sizeof(*state));
@@ -333,10 +296,16 @@ gml_type_t gml_value_typeof(gml_state_t *gml, gml_value_t value) {
 /* Registration of globals and native functions */
 void gml_set_global(gml_state_t *gml, const char *name, gml_value_t value) {
     gml_value_t *oldp;
-    if (gml_env_lookup(gml->global, name, &oldp))
+    if (gml_env_lookup(gml->global, name, &oldp)) {
+        if (gml_value_typeof(gml, *oldp) != GML_TYPE_NUMBER) {
+            gml_header_t *head = gml_value_unbox(gml, *oldp);
+            head->destroy(gml, *oldp);
+            list_erase(gml->objects, head);
+        }
         *oldp = value;
-    else
+    } else {
         gml_env_bind(gml->global, name, value);
+    }
 }
 
 void gml_set_native(gml_state_t *gml, const char *name, gml_native_func_t func, int min, int max) {
@@ -367,7 +336,6 @@ gml_value_t gml_atom_create(gml_state_t *gml, const char *key) {
     if (!(atom = malloc(sizeof(*atom))))
         return gml_nil_create(gml);
     atom->header.type    = GML_TYPE_ATOM;
-    atom->header.marked  = 0;
     atom->header.destroy = &gml_atom_destroy;
     atom->length         = length;
     atom->key            = strdup(key);
@@ -407,7 +375,6 @@ gml_value_t gml_array_create(gml_state_t *gml, gml_value_t *elements, size_t len
         return gml_nil_create(gml);
     }
     array->header.type    = GML_TYPE_ARRAY;
-    array->header.marked  = 0;
     array->header.destroy = &gml_array_destroy;
     memcpy(array->elements, elements, sizeof(gml_value_t) * length);
     array->length   = length;
@@ -427,7 +394,6 @@ gml_value_t gml_array_create_cat(gml_state_t *gml, gml_value_t a1, gml_value_t a
         return gml_nil_create(gml);
     }
     array->header.type    = GML_TYPE_ARRAY;
-    array->header.marked  = 0;
     array->header.destroy = &gml_array_destroy;
     memcpy(array->elements, array1->elements, sizeof(gml_value_t) * array1->length);
     memcpy(&array->elements[array1->length], array2->elements, sizeof(gml_value_t) * array2->length);
@@ -468,7 +434,6 @@ gml_value_t gml_function_create(gml_state_t *gml, const char *name, list_t *form
         return gml_nil_create(gml);
 
     fun->header.type    = GML_TYPE_FUNCTION;
-    fun->header.marked  = 0;
     fun->header.destroy = &gml_function_destroy;
     fun->name           = name;
     fun->formals        = formals;
@@ -513,7 +478,6 @@ gml_value_t gml_native_create(gml_state_t *gml, gml_native_func_t func, int min,
         return gml_nil_create(gml);
 
     native->header.type    = GML_TYPE_NATIVE;
-    native->header.marked  = 0;
     native->header.destroy = &gml_native_destroy;
     native->func           = func;
     native->min            = min;
@@ -604,7 +568,6 @@ static gml_value_t gml_string_from_runes(gml_state_t *gml, gml_string_rune_t *ru
         return gml_nil_create(gml);
 
     string->header.type    = GML_TYPE_STRING;
-    string->header.marked  = 0;
     string->header.destroy = &gml_string_destroy;
     string->length         = nrunes;
     string->runes          = runes;
@@ -821,7 +784,6 @@ void gml_table_destroy(gml_state_t *gml, gml_value_t value) {
 gml_value_t gml_table_create(gml_state_t *gml) {
     gml_table_t *table = malloc(sizeof(*table));
     table->header.type    = GML_TYPE_TABLE;
-    table->header.marked  = 0;
     table->header.destroy = &gml_table_destroy;
     table->size           = 11;
     table->buckets        = malloc(sizeof(gml_table_bucket_t) * table->size);
@@ -951,7 +913,6 @@ static gml_value_t gml_eval_block(gml_state_t *gml, list_t *block, gml_env_t *en
     while (!list_iterator_end(it))
         value = gml_eval(gml, list_iterator_next(it), env);
     list_iterator_destroy(it);
-    gml_gc(gml);
     return value;
 }
 
@@ -1024,10 +985,16 @@ static gml_value_t gml_eval_table(gml_state_t *gml, ast_t *expr, gml_env_t *env)
 static gml_value_t gml_eval_assign_variable(gml_state_t *gml, ast_t *expr, gml_env_t *env) {
     gml_value_t value = gml_eval(gml, expr->binary.right, env);
     gml_value_t *old;
-    if (gml_env_lookup(env, expr->binary.left->ident, &old))
+    if (gml_env_lookup(env, expr->binary.left->ident, &old)) {
+        if (gml_value_typeof(gml, *old) != GML_TYPE_NUMBER) {
+            gml_header_t *head = gml_value_unbox(gml, *old);
+            head->destroy(gml, *old);
+            list_erase(gml->objects, head);
+        }
         *old = value;
-    else
+    } else {
         gml_env_bind(env, expr->binary.left->ident, value);
+    }
     return value;
 }
 

@@ -61,8 +61,7 @@ typedef struct gml_header_s gml_header_t;
 
 struct gml_header_s {
     gml_type_t    type;
-    unsigned char marked;
-    void         (*destroy)(gml_state_t *gml, gml_value_t value);
+    void        (*destroy)(gml_state_t *gml, gml_value_t value);
 };
 
 typedef gml_value_t (*gml_native_func_t)(gml_state_t *state, gml_value_t *value_array, size_t value_length);
