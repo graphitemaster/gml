@@ -372,6 +372,26 @@ static ast_t *parse_expression_last(parse_t *parse, ast_t *lhs, int minprec) {
         if (prec < nextprec)
             rhs = parse_expression_last(parse, rhs, prec + 1);
 
+        /* Constant folding */
+        if (rhs->class == AST_NUMBER && lhs->class == AST_NUMBER) {
+            switch (op) {
+                case LEX_TOKEN_PLUS:
+                    lhs->number += rhs->number;
+                    return lhs;
+                case LEX_TOKEN_MINUS:
+                    lhs->number -= rhs->number;
+                    return lhs;
+                case LEX_TOKEN_MUL:
+                    lhs->number *= rhs->number;
+                    return lhs;
+                case LEX_TOKEN_DIV:
+                    lhs->number /= rhs->number;
+                    return lhs;
+                default:
+                    break;
+            }
+        }
+
         ast_t *newlhs        = ast_class_create(AST_BINARY, *parse_position(parse));
         newlhs->binary.left  = lhs;
         newlhs->binary.right = rhs;

@@ -434,7 +434,7 @@ void gml_function_destroy(gml_state_t *gml, gml_value_t value) {
     free(function);
 }
 
-gml_value_t gml_function_create(gml_state_t *gml, const char *name, list_t *formals, list_t *body, void *env) {
+gml_value_t gml_function_create(gml_state_t *gml, const char *name, list_t *formals, list_t *body, gml_env_t *env) {
     gml_function_t *fun = malloc(sizeof(*fun));
     if (!fun)
         return gml_nil_create(gml);
@@ -462,7 +462,7 @@ list_t *gml_function_body(gml_state_t *gml, gml_value_t fun) {
     return ((gml_function_t*)gml_value_unbox(gml, fun))->body;
 }
 
-void *gml_function_env(gml_state_t *gml, gml_value_t fun) {
+static gml_env_t *gml_function_env(gml_state_t *gml, gml_value_t fun) {
     return ((gml_function_t*)gml_value_unbox(gml, fun))->env;
 }
 
