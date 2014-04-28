@@ -140,13 +140,6 @@ fn(formals) {
 Function return values are implicit, the last statement in a function
 is the return value.
 
-
-The following two are equivalent:
-```
-map(fn(x) => x * x, range(1, 11));
-map(fn(x) { x * x }, range(1, 11));
-```
-
 Function calls are placed with:
 ```
 name(formals);
