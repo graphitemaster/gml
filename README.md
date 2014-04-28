@@ -4,7 +4,7 @@ GML is a dynamically typed, higher-order, interpreted and embeddable
 programming language.
 
 # Why
-One of the projects I'm currently working on; Neothye, needed a scripting
+One of the projects I'm currently working on; Neothyne, needed a scripting
 language primarly for constructing shaders and supplying global configuration
 of the engine as well as configuration files for materials.
 
