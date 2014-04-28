@@ -342,6 +342,15 @@ static ast_t *parse_subscript_sugar(parse_t *parse, ast_t *ast) {
         return parse_subscript_sugar(parse, subscript);
     return subscript;
 }
+static ast_t *parse_lambda(parse_t *parse) {
+    ast_t *ast = ast_class_create(AST_LAMBDA, *parse_position(parse));
+    ast->lambda.formals = parse_formals(parse);
+    if (parse_match(parse, LEX_TOKEN_LBRACE))
+        ast->lambda.body = parse_block(parse);
+    else if (parse_match(parse, LEX_TOKEN_ARROW))
+        ast->lambda.body = parse_arrow(parse);
+    return ast;
+}
 static ast_t *parse_expression_primary(parse_t *parse) {
     ast_t *ast = NULL;
     if (parse_matchliteral(parse))
@@ -351,12 +360,7 @@ static ast_t *parse_expression_primary(parse_t *parse) {
         ast->ident = parse_token_string(parse);
         parse_skip(parse);
     } else if (parse_matchskip(parse, LEX_TOKEN_FN)) {
-        ast                 = ast_class_create(AST_LAMBDA, *parse_position(parse));
-        ast->lambda.formals = parse_formals(parse);
-        if (parse_match(parse, LEX_TOKEN_LBRACE))
-            ast->lambda.body = parse_block(parse);
-        else if (parse_match(parse, LEX_TOKEN_ARROW))
-            ast->lambda.body = parse_arrow(parse);
+        ast = parse_lambda(parse);
     } else if (parse_matchskip(parse, LEX_TOKEN_NOT)) {
         ast                 = ast_class_create(AST_UNARY, *parse_position(parse));
         ast->unary.op       = LEX_TOKEN_NOT;
@@ -365,7 +369,7 @@ static ast_t *parse_expression_primary(parse_t *parse) {
         ast = parse_expression(parse);
         parse_expectskip(parse, LEX_TOKEN_RPAREN);
     } else {
-        gml_error(&ast->position, "Expected expression.");
+        gml_error(&ast->position, "Expected expression. %s", lex_token_classname(parse_token(parse)->class));
         longjmp(parse->escape, 1);
     }
 
@@ -381,21 +385,6 @@ static ast_t *parse_expression_primary(parse_t *parse) {
 static ast_t *parse_expression_last(parse_t *parse, ast_t *lhs, int minprec) {
     for (;;) {
         lex_token_class_t op = parse_token(parse)->class;
-        /* inc dec have highest precedence now */
-        if (op == LEX_TOKEN_POSTDEC || op == LEX_TOKEN_POSTINC) {
-            /* Construct "var = var [+-] 1" */
-            ast_t *add = ast_class_create(AST_BINARY, *parse_position(parse));
-            add->binary.left          = lhs;
-            add->binary.right         = ast_class_create(AST_NUMBER, *parse_position(parse));
-            add->binary.right->number = 1;
-            add->binary.op            = (op == LEX_TOKEN_POSTDEC) ? LEX_TOKEN_MINUS : LEX_TOKEN_PLUS;
-            ast_t *store = ast_class_create(AST_DECLVAR, *parse_position(parse));
-            store->vardecl.initializer = add;
-            store->vardecl.name        = lhs->vardecl.name;
-            parse_skip(parse);
-            return store;
-        }
-
         int prec = parse_precedence(parse_token(parse)->class);
         if (prec < minprec)
             return lhs;
@@ -529,20 +518,23 @@ static ast_t *parse_decl_var(parse_t *parse) {
 }
 static ast_t *parse_decl_fun(parse_t *parse) {
     gml_position_t position = *parse_position(parse);
-    ast_t *ast = ast_class_create(AST_DECLFUN, position);
+    ast_t *ast;
 
     /* function name */
     parse_expectskip(parse, LEX_TOKEN_FN);
-    parse_expect(parse, LEX_TOKEN_IDENTIFIER);
+    /* no identifier means we're parsing a lambda */
+    if (!parse_match(parse, LEX_TOKEN_IDENTIFIER)) {
+        ast = parse_lambda(parse);
+        parse_expectskip(parse, LEX_TOKEN_SEMICOLON);
+        return ast;
+    }
+    ast = ast_class_create(AST_DECLFUN, position);
     ast->fundecl.name = parse_token_string(parse);
     parse_skip(parse);
 
     /* argument list */
     ast->fundecl.impl.formals = parse_formals(parse);
-    if (parse_match(parse, LEX_TOKEN_ARROW))
-        ast->fundecl.impl.body = parse_arrow(parse);
-    else
-        ast->fundecl.impl.body = parse_block(parse);
+    ast->fundecl.impl.body    = parse_block(parse);
     return ast;
 }
 

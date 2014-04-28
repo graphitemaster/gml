@@ -941,7 +941,11 @@ static gml_value_t gml_eval_table(gml_state_t *gml, ast_t *expr, gml_env_t *env)
 
 static gml_value_t gml_eval_assign_variable(gml_state_t *gml, ast_t *expr, gml_env_t *env) {
     gml_value_t value = gml_eval(gml, expr->binary.right, env);
-    gml_env_bind(env, expr->binary.left->ident, value);
+    gml_value_t *old;
+    if (gml_env_lookup(env, expr->binary.left->ident, &old))
+        *old = value;
+    else
+        gml_env_bind(env, expr->binary.left->ident, value);
     return value;
 }
 
@@ -1233,6 +1237,9 @@ static gml_value_t gml_eval_for_type(gml_state_t *gml, list_t *formals, list_t *
                 result = gml_eval_block(gml, body, env);
             }
             return result;
+
+        case GML_TYPE_FUNCTION:
+            break;
 
         default:
             break;

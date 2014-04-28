@@ -221,8 +221,8 @@ lex_token_t *lex_run(lex_t *lex) {
         case '*': return lex_emit(lex, LEX_TOKEN_MUL);
         case '/': return lex_emit(lex, LEX_TOKEN_DIV);
         case '%': return lex_emit(lex, LEX_TOKEN_MOD);
-        case '+': return lex_emit(lex, (lex_peek(lex) == '+') ? lex_get(lex), LEX_TOKEN_POSTINC : LEX_TOKEN_PLUS);
-        case '-': return lex_emit(lex, (lex_peek(lex) == '-') ? lex_get(lex), LEX_TOKEN_POSTDEC : LEX_TOKEN_MINUS);
+        case '+': return lex_emit(lex, LEX_TOKEN_PLUS);
+        case '-': return lex_emit(lex, LEX_TOKEN_MINUS);
         case '!': return lex_emit(lex, (lex_peek(lex) == '=') ? lex_get(lex), LEX_TOKEN_NEQUAL  : LEX_TOKEN_NOT);
         case '<': return lex_emit(lex, (lex_peek(lex) == '=') ? lex_get(lex), LEX_TOKEN_LEQUAL  : LEX_TOKEN_LESS);
         case '>': return lex_emit(lex, (lex_peek(lex) == '=') ? lex_get(lex), LEX_TOKEN_GEQUAL  : LEX_TOKEN_GREATER);
@@ -277,8 +277,6 @@ const char *lex_token_classname(lex_token_class_t class) {
         case LEX_TOKEN_GREATER:     return "`>'";
         case LEX_TOKEN_LEQUAL:      return "`<='";
         case LEX_TOKEN_GEQUAL:      return "`>='";
-        case LEX_TOKEN_POSTDEC:     return "`--'";
-        case LEX_TOKEN_POSTINC:     return "`++'";
         case LEX_TOKEN_ARROW:       return "`=>'";
         case LEX_TOKEN_VAR:         return "(keyword `var')";
         case LEX_TOKEN_FN:          return "(keyword `fn')";

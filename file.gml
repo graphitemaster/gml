@@ -1,17 +1,16 @@
 #!/usr/bin/gml
 
-a = [ [ 1, 2 ], [3, 4] ];
-a = a + a;
-a = a + a;
-a = a + a;
-a = a + a;
-a = a + a;
+fn test(a, b) {
+    fn() {
+        if (a <= b) {
+            r = a;
+            a = a + 1;
+            r;
+        }
+    };
+}
 
-a = filter(fn(x) => x == [1, 2], a);
-a = reduce(fn(x, y) => x, a);
-
-println(a);
-
-
-// cubes produced from even numbers in the range (0, 10)
-// when sumed = 800
+t1 = test(5, 10);
+print(t1());
+print(t1());
+print(t1());
