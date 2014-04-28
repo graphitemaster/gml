@@ -171,20 +171,6 @@ static void gml_ht_insert(gml_ht_t *hashtable, const char *key, void *value) {
     list_push(hashtable->table[hash], gml_ht_entry_create(key, value));
 }
 
-static void gml_ht_foreach(gml_ht_t *hashtable, void *pass, void (*callback)(void *, void *)) {
-    for (size_t i = 0; i < hashtable->size; i++) {
-        list_t *list = hashtable->table[i];
-        if (!list)
-            break;
-        list_iterator_t *it = list_iterator_create(list);
-        while (!list_iterator_end(it))  {
-            gml_ht_entry_t *entry = list_iterator_next(it);
-            callback(pass, entry->value);
-        }
-        list_iterator_destroy(it);
-    }
-}
-
 static void *gml_ht_find(gml_ht_t *hashtable, const char *key) {
     gml_ht_entry_t *find = gml_ht_entry_find(hashtable, key, &(size_t){0});
     return find ? find->value : NULL;
@@ -195,6 +181,7 @@ struct gml_state_s {
     gml_ht_t  *atoms;
     parse_t   *parse;
     ast_t     *ast;
+    list_t    *objects;
     jmp_buf    escape;
     size_t     lambdaindex;
 };
@@ -246,56 +233,41 @@ void gml_arg_check(gml_state_t *gml, gml_value_t *args, size_t nargs, const char
     }
 }
 
-/* Runtime atom */
-typedef struct {
-    gml_header_t header;
-    size_t       length;
-    char        *key;
-} gml_atom_t;
-
-gml_value_t gml_atom_create(gml_state_t *gml, const char *key) {
-    gml_atom_t *atom = gml_ht_find(gml->atoms, key);
-    if (atom)
-        return gml_value_box(gml, (gml_header_t*)atom);
-
-    /* Create a new atom and insert it into our hashtable */
-    const size_t length = strlen(key);
-    if (!(atom = malloc(sizeof(*atom))))
-        return gml_nil_create(gml);
-    atom->header.type = GML_TYPE_ATOM;
-    atom->length      = length;
-    atom->key         = strdup(key);
-    gml_ht_insert(gml->atoms, key, atom);
-
-    return gml_value_box(gml, (gml_header_t*)atom);
+/* Garbage collection */
+static void gml_gc_mark(gml_header_t *header) {
+    if (header->marked)
+        return;
+    header->marked = 1;
 }
 
-static void gml_atom_destroy(gml_state_t *gml, gml_atom_t *atom) {
-    (void)gml;
-    free(atom->key);
-    free(atom);
+static void gml_gc_markall(gml_state_t *gml) {
+    list_iterator_t *it = list_iterator_create(gml->objects);
+    while (!list_iterator_end(it))
+        gml_gc_mark(list_iterator_next(it));
+    list_iterator_destroy(it);
 }
 
-size_t gml_atom_length(gml_state_t *gml, gml_value_t value) {
-    return ((gml_atom_t*)gml_value_unbox(gml, value))->length;
+static void gml_gc_sweep(gml_state_t *gml) {
+    list_iterator_t *it = list_iterator_create(gml->objects);
+    while (!list_iterator_end(it)) {
+        gml_header_t *obj = list_iterator_next(it);
+        if (!obj->marked) {
+            obj->destroy(gml, gml_value_box(gml, obj));
+            list_erase(gml->objects, obj);
+        } else {
+            obj->marked = 0;
+        }
+    }
+    list_iterator_destroy(it);
 }
 
-const char *gml_atom_key(gml_state_t *gml, gml_value_t value) {
-    return ((gml_atom_t*)gml_value_unbox(gml, value))->key;
-}
+static void gml_gc(gml_state_t *gml) {
+    size_t objects = list_length(gml->objects);
+    gml_gc_markall(gml);
+    gml_gc_sweep(gml);
 
-/* Registration of globals and native functions */
-void gml_setglobal(gml_state_t *gml, const char *name, gml_value_t value) {
-    gml_value_t *oldp;
-    if (gml_env_lookup(gml->global, name, &oldp))
-        *oldp = value;
-    else
-        gml_env_bind(gml->global, name, value);
-}
-
-void gml_setnative(gml_state_t *gml, const char *name, gml_native_func_t func, int min, int max) {
-    gml_value_t value = gml_native_create(gml, func, min, max);
-    gml_setglobal(gml, name, value);
+    size_t now = list_length(gml->objects);
+    printf("Collected %zu objects, %zu remaining\n", objects - now, now);
 }
 
 /* State runtime */
@@ -305,14 +277,23 @@ gml_state_t *gml_state_create(void) {
     state->atoms       = gml_ht_create(32);
     state->parse       = NULL;
     state->ast         = NULL;
+    state->objects     = list_create();
     state->lambdaindex = 0;
     return state;
 }
 
 void gml_state_destroy(gml_state_t *state) {
+    /* Destroy anything not already handled by the GC */
+    list_iterator_t *it = list_iterator_create(state->objects);
+    while (!list_iterator_end(it)) {
+        gml_header_t *head = list_iterator_next(it);
+        head->destroy(state, gml_value_box(state, head));
+    }
+    list_iterator_destroy(it);
+
     gml_env_destroy(state->global);
-    //gml_ht_foreach(state->atoms, state, (void(*)(void*,void*))&gml_atom_destroy);
     gml_ht_destroy(state->atoms);
+    list_destroy(state->objects);
     parse_destroy(state->parse, state->ast);
     free(state);
 }
@@ -349,6 +330,60 @@ gml_type_t gml_value_typeof(gml_state_t *gml, gml_value_t value) {
     return GML_TYPE_NUMBER;
 }
 
+/* Registration of globals and native functions */
+void gml_set_global(gml_state_t *gml, const char *name, gml_value_t value) {
+    gml_value_t *oldp;
+    if (gml_env_lookup(gml->global, name, &oldp))
+        *oldp = value;
+    else
+        gml_env_bind(gml->global, name, value);
+}
+
+void gml_set_native(gml_state_t *gml, const char *name, gml_native_func_t func, int min, int max) {
+    gml_value_t value = gml_native_create(gml, func, min, max);
+    gml_set_global(gml, name, value);
+}
+
+/* Runtime atom */
+typedef struct {
+    gml_header_t header;
+    size_t       length;
+    char        *key;
+} gml_atom_t;
+
+void gml_atom_destroy(gml_state_t *gml, gml_value_t value) {
+    gml_atom_t *atom = (gml_atom_t*)gml_value_unbox(gml, value);
+    free(atom->key);
+    free(atom);
+}
+
+gml_value_t gml_atom_create(gml_state_t *gml, const char *key) {
+    gml_atom_t *atom = gml_ht_find(gml->atoms, key);
+    if (atom)
+        return gml_value_box(gml, (gml_header_t*)atom);
+
+    /* Create a new atom and insert it into our hashtable */
+    const size_t length = strlen(key);
+    if (!(atom = malloc(sizeof(*atom))))
+        return gml_nil_create(gml);
+    atom->header.type    = GML_TYPE_ATOM;
+    atom->header.marked  = 0;
+    atom->header.destroy = &gml_atom_destroy;
+    atom->length         = length;
+    atom->key            = strdup(key);
+    gml_ht_insert(gml->atoms, key, atom);
+    list_push(gml->objects, atom);
+    return gml_value_box(gml, (gml_header_t*)atom);
+}
+
+size_t gml_atom_length(gml_state_t *gml, gml_value_t value) {
+    return ((gml_atom_t*)gml_value_unbox(gml, value))->length;
+}
+
+const char *gml_atom_key(gml_state_t *gml, gml_value_t value) {
+    return ((gml_atom_t*)gml_value_unbox(gml, value))->key;
+}
+
 /* Runtime array */
 typedef struct {
     gml_header_t header;
@@ -356,6 +391,12 @@ typedef struct {
     size_t       length;
     size_t       capacity;
 } gml_array_t;
+
+void gml_array_destroy(gml_state_t *gml, gml_value_t value) {
+    gml_array_t *array = (gml_array_t*)gml_value_unbox(gml, value);
+    free(array->elements);
+    free(array);
+}
 
 gml_value_t gml_array_create(gml_state_t *gml, gml_value_t *elements, size_t length) {
     gml_array_t *array = malloc(sizeof(*array));
@@ -365,10 +406,13 @@ gml_value_t gml_array_create(gml_state_t *gml, gml_value_t *elements, size_t len
         free(array);
         return gml_nil_create(gml);
     }
-    array->header.type = GML_TYPE_ARRAY;
+    array->header.type    = GML_TYPE_ARRAY;
+    array->header.marked  = 0;
+    array->header.destroy = &gml_array_destroy;
     memcpy(array->elements, elements, sizeof(gml_value_t) * length);
     array->length   = length;
     array->capacity = length;
+    list_push(gml->objects, array);
     return gml_value_box(gml, (gml_header_t*)array);
 }
 
@@ -382,11 +426,14 @@ gml_value_t gml_array_create_cat(gml_state_t *gml, gml_value_t a1, gml_value_t a
         free(array);
         return gml_nil_create(gml);
     }
-    array->header.type = GML_TYPE_ARRAY;
+    array->header.type    = GML_TYPE_ARRAY;
+    array->header.marked  = 0;
+    array->header.destroy = &gml_array_destroy;
     memcpy(array->elements, array1->elements, sizeof(gml_value_t) * array1->length);
     memcpy(&array->elements[array1->length], array2->elements, sizeof(gml_value_t) * array2->length);
     array->length   = array1->length + array2->length;
     array->capacity = array->length;
+    list_push(gml->objects, array);
     return gml_value_box(gml, (gml_header_t*)array);
 }
 
@@ -411,17 +458,24 @@ typedef struct {
     void        *env;
 } gml_function_t;
 
+void gml_function_destroy(gml_state_t *gml, gml_value_t value) {
+    free(gml_value_unbox(gml, value));
+}
+
 gml_value_t gml_function_create(gml_state_t *gml, const char *name, list_t *formals, list_t *body, void *env) {
     gml_function_t *fun = malloc(sizeof(*fun));
     if (!fun)
         return gml_nil_create(gml);
 
-    fun->header.type = GML_TYPE_FUNCTION;
-    fun->name        = name;
-    fun->formals     = formals;
-    fun->body        = body;
-    fun->env         = env;
+    fun->header.type    = GML_TYPE_FUNCTION;
+    fun->header.marked  = 0;
+    fun->header.destroy = &gml_function_destroy;
+    fun->name           = name;
+    fun->formals        = formals;
+    fun->body           = body;
+    fun->env            = env;
 
+    list_push(gml->objects, fun);
     return gml_value_box(gml, (gml_header_t*)fun);
 }
 
@@ -449,16 +503,23 @@ typedef struct {
     int               max;
 } gml_native_t;
 
+void gml_native_destroy(gml_state_t *gml, gml_value_t value) {
+    free(gml_value_unbox(gml, value));
+}
+
 gml_value_t gml_native_create(gml_state_t *gml, gml_native_func_t func, int min, int max) {
     gml_native_t *native = malloc(sizeof(*native));
     if (!native)
         return gml_nil_create(gml);
 
-    native->header.type = GML_TYPE_NATIVE;
-    native->func        = func;
-    native->min         = min;
-    native->max         = max;
+    native->header.type    = GML_TYPE_NATIVE;
+    native->header.marked  = 0;
+    native->header.destroy = &gml_native_destroy;
+    native->func           = func;
+    native->min            = min;
+    native->max            = max;
 
+    list_push(gml->objects, native);
     return gml_value_box(gml, (gml_header_t*)native);
 }
 
@@ -531,14 +592,24 @@ typedef struct {
     gml_string_rune_t *runes;
 } gml_string_t;
 
+void gml_string_destroy(gml_state_t *gml, gml_value_t value) {
+    gml_string_t *string = (gml_string_t*)gml_value_unbox(gml, value);
+    free(string->runes);
+    free(string);
+}
+
 static gml_value_t gml_string_from_runes(gml_state_t *gml, gml_string_rune_t *runes, size_t nrunes) {
     gml_string_t *string = malloc(sizeof(*string));
     if (!string)
         return gml_nil_create(gml);
 
-    string->header.type  = GML_TYPE_STRING;
-    string->length       = nrunes;
-    string->runes        = runes;
+    string->header.type    = GML_TYPE_STRING;
+    string->header.marked  = 0;
+    string->header.destroy = &gml_string_destroy;
+    string->length         = nrunes;
+    string->runes          = runes;
+
+    list_push(gml->objects, string);
     return gml_value_box(gml, (gml_header_t*)string);
 }
 
@@ -741,13 +812,22 @@ static void gml_table_rehash(gml_state_t *gml, gml_table_t *table) {
     free(obuckets);
 }
 
+void gml_table_destroy(gml_state_t *gml, gml_value_t value) {
+    gml_table_t *table = (gml_table_t*)gml_value_unbox(gml, value);
+    free(table->buckets);
+    free(table);
+}
+
 gml_value_t gml_table_create(gml_state_t *gml) {
     gml_table_t *table = malloc(sizeof(*table));
-    table->header.type = GML_TYPE_TABLE;
-    table->size        = 11;
-    table->buckets     = malloc(sizeof(gml_table_bucket_t) * table->size);
+    table->header.type    = GML_TYPE_TABLE;
+    table->header.marked  = 0;
+    table->header.destroy = &gml_table_destroy;
+    table->size           = 11;
+    table->buckets        = malloc(sizeof(gml_table_bucket_t) * table->size);
 
     gml_table_clear(gml, table);
+    list_push(gml->objects, table);
     return gml_value_box(gml, (gml_header_t*)table);
 }
 
@@ -871,6 +951,7 @@ static gml_value_t gml_eval_block(gml_state_t *gml, list_t *block, gml_env_t *en
     while (!list_iterator_end(it))
         value = gml_eval(gml, list_iterator_next(it), env);
     list_iterator_destroy(it);
+    gml_gc(gml);
     return value;
 }
 

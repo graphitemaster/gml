@@ -315,45 +315,45 @@ static gml_value_t gml_builtin_find(gml_state_t *gml, gml_value_t *args, size_t 
 
 void gml_builtins_install(gml_state_t *gml) {
     /* IO */
-    gml_setnative(gml, "print",    &gml_builtin_print,    0, -1);
-    gml_setnative(gml, "println",  &gml_builtin_println,  0, -1);
+    gml_set_native(gml, "print",    &gml_builtin_print,    0, -1);
+    gml_set_native(gml, "println",  &gml_builtin_println,  0, -1);
 
     /* Math */
-    gml_setnative(gml, "cos",      &gml_builtin_cos,      1,  1);
-    gml_setnative(gml, "sin",      &gml_builtin_sin,      1,  1);
-    gml_setnative(gml, "tan",      &gml_builtin_tan,      1,  1);
-    gml_setnative(gml, "acos",     &gml_builtin_acos,     1,  1);
-    gml_setnative(gml, "asin",     &gml_builtin_asin,     1,  1);
-    gml_setnative(gml, "atan",     &gml_builtin_atan,     1,  1);
-    gml_setnative(gml, "atan2",    &gml_builtin_atan2,    2,  2);
-    gml_setnative(gml, "cosh",     &gml_builtin_cosh,     1,  1);
-    gml_setnative(gml, "sinh",     &gml_builtin_sinh,     1,  1);
-    gml_setnative(gml, "tanh",     &gml_builtin_tanh,     1,  1);
-    gml_setnative(gml, "acosh",    &gml_builtin_acosh,    1,  1);
-    gml_setnative(gml, "asinh",    &gml_builtin_asinh,    1,  1);
-    gml_setnative(gml, "atanh",    &gml_builtin_atanh,    1,  1);
-    gml_setnative(gml, "exp",      &gml_builtin_exp,      1,  1);
-    gml_setnative(gml, "exp2",     &gml_builtin_exp2,     1,  1);
-    gml_setnative(gml, "expm1",    &gml_builtin_expm1,    1,  1);
-    gml_setnative(gml, "ldexp",    &gml_builtin_ldexp,    2,  2);
-    gml_setnative(gml, "log",      &gml_builtin_log,      1,  1);
-    gml_setnative(gml, "log2",     &gml_builtin_log2,     1,  1);
-    gml_setnative(gml, "log10",    &gml_builtin_log10,    1,  1);
-    gml_setnative(gml, "ilogb",    &gml_builtin_ilogb,    1,  1);
-    gml_setnative(gml, "log1p",    &gml_builtin_log1p,    1,  1);
-    gml_setnative(gml, "logb",     &gml_builtin_logb,     1,  1);
-    gml_setnative(gml, "scalbn",   &gml_builtin_scalbn,   2,  2);
-    gml_setnative(gml, "pow",      &gml_builtin_pow,      2,  2);
-    gml_setnative(gml, "sqrt",     &gml_builtin_sqrt,     1,  1);
-    gml_setnative(gml, "cbrt",     &gml_builtin_cbrt,     1,  1);
-    gml_setnative(gml, "hypot",    &gml_builtin_hypot,    2,  2);
+    gml_set_native(gml, "cos",      &gml_builtin_cos,      1,  1);
+    gml_set_native(gml, "sin",      &gml_builtin_sin,      1,  1);
+    gml_set_native(gml, "tan",      &gml_builtin_tan,      1,  1);
+    gml_set_native(gml, "acos",     &gml_builtin_acos,     1,  1);
+    gml_set_native(gml, "asin",     &gml_builtin_asin,     1,  1);
+    gml_set_native(gml, "atan",     &gml_builtin_atan,     1,  1);
+    gml_set_native(gml, "atan2",    &gml_builtin_atan2,    2,  2);
+    gml_set_native(gml, "cosh",     &gml_builtin_cosh,     1,  1);
+    gml_set_native(gml, "sinh",     &gml_builtin_sinh,     1,  1);
+    gml_set_native(gml, "tanh",     &gml_builtin_tanh,     1,  1);
+    gml_set_native(gml, "acosh",    &gml_builtin_acosh,    1,  1);
+    gml_set_native(gml, "asinh",    &gml_builtin_asinh,    1,  1);
+    gml_set_native(gml, "atanh",    &gml_builtin_atanh,    1,  1);
+    gml_set_native(gml, "exp",      &gml_builtin_exp,      1,  1);
+    gml_set_native(gml, "exp2",     &gml_builtin_exp2,     1,  1);
+    gml_set_native(gml, "expm1",    &gml_builtin_expm1,    1,  1);
+    gml_set_native(gml, "ldexp",    &gml_builtin_ldexp,    2,  2);
+    gml_set_native(gml, "log",      &gml_builtin_log,      1,  1);
+    gml_set_native(gml, "log2",     &gml_builtin_log2,     1,  1);
+    gml_set_native(gml, "log10",    &gml_builtin_log10,    1,  1);
+    gml_set_native(gml, "ilogb",    &gml_builtin_ilogb,    1,  1);
+    gml_set_native(gml, "log1p",    &gml_builtin_log1p,    1,  1);
+    gml_set_native(gml, "logb",     &gml_builtin_logb,     1,  1);
+    gml_set_native(gml, "scalbn",   &gml_builtin_scalbn,   2,  2);
+    gml_set_native(gml, "pow",      &gml_builtin_pow,      2,  2);
+    gml_set_native(gml, "sqrt",     &gml_builtin_sqrt,     1,  1);
+    gml_set_native(gml, "cbrt",     &gml_builtin_cbrt,     1,  1);
+    gml_set_native(gml, "hypot",    &gml_builtin_hypot,    2,  2);
 
     /* Map filter reduce */
-    gml_setnative(gml, "map",      &gml_builtin_map,      2,  2);
-    gml_setnative(gml, "range",    &gml_builtin_range,    2,  2);
-    gml_setnative(gml, "filter",   &gml_builtin_filter,   2,  2);
-    gml_setnative(gml, "reduce",   &gml_builtin_reduce,   2,  2);
+    gml_set_native(gml, "map",      &gml_builtin_map,      2,  2);
+    gml_set_native(gml, "range",    &gml_builtin_range,    2,  2);
+    gml_set_native(gml, "filter",   &gml_builtin_filter,   2,  2);
+    gml_set_native(gml, "reduce",   &gml_builtin_reduce,   2,  2);
 
-    gml_setnative(gml, "length",   &gml_builtin_length,   1,  1);
-    gml_setnative(gml, "find",     &gml_builtin_find,     2,  2);
+    gml_set_native(gml, "length",   &gml_builtin_length,   1,  1);
+    gml_set_native(gml, "find",     &gml_builtin_find,     2,  2);
 }

@@ -57,10 +57,13 @@ typedef struct gml_state_s gml_state_t;
  * set to one such that regular NaNs are not mistaken as boxed pointers.
  */
 typedef double gml_value_t;
+typedef struct gml_header_s gml_header_t;
 
-typedef struct {
-    gml_type_t type;
-} gml_header_t;
+struct gml_header_s {
+    gml_type_t    type;
+    unsigned char marked;
+    void         (*destroy)(gml_state_t *gml, gml_value_t value);
+};
 
 typedef gml_value_t (*gml_native_func_t)(gml_state_t *state, gml_value_t *value_array, size_t value_length);
 
@@ -85,8 +88,8 @@ void gml_env_bind(gml_env_t *env, const char *name, gml_value_t value);
 int gml_env_lookup(gml_env_t *env, const char *name, gml_value_t **out);
 gml_value_t gml_value_box(gml_state_t *gml, gml_header_t *value);
 gml_header_t *gml_value_unbox(gml_state_t *gml, gml_value_t value);
-void gml_setglobal(gml_state_t *gml, const char *name, gml_value_t value);
-void gml_setnative(gml_state_t *gml, const char *name, gml_native_func_t func, int min, int max);
+void gml_set_global(gml_state_t *gml, const char *name, gml_value_t value);
+void gml_set_native(gml_state_t *gml, const char *name, gml_native_func_t func, int min, int max);
 gml_value_t gml_string_create(gml_state_t *gml, const char *string);
 size_t gml_string_length(gml_state_t *gml, gml_value_t string);
 gml_value_t gml_array_create(gml_state_t *gml, gml_value_t *elements, size_t length);
