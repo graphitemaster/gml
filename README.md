@@ -26,7 +26,7 @@ primitive operations (like concatenation, folding, etc).
 * Binary operators: `+ - * /`
 * Logical operators: `&& || !`
 * Bitwise operators: `& |`
-* Unary operators: `- + ++ --`
+* Unary operators: `- +`
 * Comparision operators: `< > <= >= == != is`
 
 Objects in GML can be equal or the same. Objects are considered the same
@@ -46,12 +46,13 @@ The following identifiers are reserved as they are keywords for the
 language.
 
 * while
+* for
+* in
 * if
 * else
 * elif
-* fun
 * fn
-* same
+* is
 
 # Types
 
@@ -65,8 +66,53 @@ language.
 
 # Control
 
-Control flow is acomplished with `if` `else` `elif` and `while`. Scopes
-take on the form `{ }`.
+Control flow is acomplished with `if` `else` `elif`, `while` and `for`.
+Scopes take on the form `{ }`.
+
+## while
+The while loop just executes the block of code so long as the condition
+for the while loop evaluates `:true`. Here is an example.
+```
+while i != 10 {
+    i = i + 1;
+}
+```
+
+## for
+The for loop takes on the form:
+```
+for [formals] in [expr] {
+    body;
+}
+```
+
+The way values are mapped to formals depends on the type of the expression,
+or the return type of the expression if the expression is a function call.
+
+For strings and arrays, the elements are mapped into the formals in a
+straight forward way. Specifically if there are N formals, then the
+string or array will be chopped up into pieces of size N. Tables work
+on a similar principal except the values mapped to the formals are
+arrays of two values which represent the key and value in the table.
+
+Here are a few examples:
+```
+>>> fn something(x) { [x + 1, x + 2]; }
+<function:something>
+>>> for i in something(100) { println(i); }
+101
+102
+>>> for i, j in [1, 2] { println(i); }
+1
+>>> for i, j in [1, 2] { println(i, j); }
+1 2
+>>> for i in "hello" { print(i); }
+hello
+>>> for i in { :a = "b", "c" = 1, "d" = [ 2 ] } { println(i); }
+["d", [2]]
+[:a, "b"]
+["c", 1]
+```
 
 # Functions
 
@@ -77,7 +123,7 @@ fn name(formals) {
 }
 ```
 
-Anonumous functions take on the same form except you elide the name:
+Anonymous functions take on the same form except you elide the name:
 ```
 fn(formals) {
     body;
@@ -108,10 +154,10 @@ name(formals);
 Symbolic constants or keywords take on the form: `:name`. Atoms are
 generally useless in function or global scope and are primarly used
 for tables. Atoms can be used as symbolic constants. Currently there
-are three implicitly defined atomic constants: `:nil, :true, :false`.
+are three implicitly defined constants: `:nil, :true, :false`.
 
 # Strings
-Strings take on two forms, either `"string"` or with single character
+Strings take on two forms, either `"string"`, or with single character
 quotes, `'string'`.
 
 Strings can be subscripted as well to retrive a specific character,
