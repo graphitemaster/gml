@@ -238,6 +238,19 @@ Tables can be compared with logical operators `== !=`.
 
 # Examples
 
+A fun little example
+```
+fn triangle(n) =>
+    for y in range(0, n) {
+        for i in range(0, n - 1 - y) => print(" ");
+        for x in range(0, n) =>
+            if x & n - 1 - y => print("  "); else => print("* ");
+        print("\n");
+    }
+triangle(16);
+```
+
+
 The `range` function allows you to construct an array of integers within
 some range.
 ```
