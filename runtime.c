@@ -182,6 +182,7 @@ struct gml_state_s {
     parse_t   *parse;
     list_t    *asts;
     list_t    *objects;
+    list_t    *classes;
     jmp_buf    escape;
     size_t     lambdaindex;
 };
@@ -241,6 +242,7 @@ gml_state_t *gml_state_create(void) {
     state->parse       = NULL;
     state->asts        = list_create();
     state->objects     = list_create();
+    state->classes     = list_create();
     state->lambdaindex = 0;
     return state;
 }
@@ -261,6 +263,7 @@ void gml_state_destroy(gml_state_t *state) {
         ast_destroy(list_iterator_next(it));
     list_iterator_destroy(it);
     list_destroy(state->asts);
+    list_destroy(state->classes);
     parse_destroy(state->parse);
     free(state);
 }
@@ -937,17 +940,27 @@ static gml_value_t gml_eval_call(gml_state_t *gml, ast_t *expr, gml_env_t *env) 
     gml_type_t  calltype = gml_value_typeof(gml, callee);
     list_t     *formals;
     gml_value_t result;
+    gml_value_t *lookup = NULL;
+    int          method = 0;
 
     switch (calltype) {
         gml_env_t       *callenv;
         gml_value_t     *actuals;
-
         case GML_TYPE_FUNCTION:
             callenv = gml_env_push((gml_env_t*)gml_function_env(gml, callee));
             formals = gml_function_formals(gml, callee);
+            /*
+             * If the function contains a binding of "self" already it means the
+             * function was promoted to a method for a table which was promoted to
+             * a class.
+             *
+             * We need to start from formals[1] instead.
+             */
+            if (gml_env_lookup(callenv, "self", &lookup))
+                method = 1;
             for (size_t i = 0; i < nargs; i++) {
                 gml_value_t value = gml_eval(gml, list_at(expr->call.args, i), env);
-                gml_env_bind(callenv, list_at(formals, i), value);
+                gml_env_bind(callenv, list_at(formals, i + method), value);
             }
             return gml_eval_block(gml, gml_function_body(gml, callee), callenv);
 
@@ -982,12 +995,23 @@ static gml_value_t gml_eval_array(gml_state_t *gml, ast_t *expr, gml_env_t *env)
 }
 
 static gml_value_t gml_eval_table(gml_state_t *gml, ast_t *expr, gml_env_t *env) {
-    size_t      length = list_length(expr->table);
-    gml_value_t table  = gml_table_create(gml);
+    size_t      length  = list_length(expr->table);
+    gml_value_t table   = gml_table_create(gml);
+    int         isclass = 0;
     for (size_t i = 0; i < length; i++) {
         ast_t      *entry = list_at(expr->table, i);
         gml_value_t key   = gml_eval(gml, entry->dictentry.key,  env);
         gml_value_t value = gml_eval(gml, entry->dictentry.expr, env);
+
+        /*
+         * If there is a function which contains a `self' as the first
+         * formal, then we mark the table as being a class one.
+         */
+        if (isclass == 0 && gml_value_typeof(gml, value) == GML_TYPE_FUNCTION) {
+            isclass = 1;
+            list_push(gml->classes, gml_value_unbox(gml, table));
+        }
+
         gml_table_put(gml, table, key, value);
     }
     return table;
@@ -1219,12 +1243,31 @@ static gml_value_t gml_eval_subscript(gml_state_t *gml, ast_t *subexpr, gml_env_
     gml_value_t expr     = gml_eval(gml, subexpr->subscript.expr, env);
     gml_value_t key      = gml_eval(gml, subexpr->subscript.key,  env);
     gml_type_t  exprtype = gml_value_typeof(gml, expr);
+    gml_value_t value;
     switch (exprtype) {
         case GML_TYPE_ARRAY:
             gml_eval_subscript_check(gml, &subexpr->position, key, expr);
             return gml_array_get(gml, expr, (size_t)gml_number_value(gml, key));
         case GML_TYPE_TABLE:
-            return gml_table_get(gml, expr, key);
+            value = gml_table_get(gml, expr, key);
+            if (list_find(gml->classes, (const void *)gml_value_unbox(gml, expr))) {
+                /*
+                 * If the table is a class, we need to do a quick check to
+                 * evaluate that the subscript yeilds a method that passes
+                 * self.
+                 */
+                if (gml_value_typeof(gml, value) == GML_TYPE_FUNCTION) {
+                    /*
+                     * If the first formal of the function is `self' then
+                     * this is a method and we need to bind the table to
+                     * the functions environment as `self'.
+                     */
+                    gml_function_t *fun = (gml_function_t*)gml_value_unbox(gml, value);
+                    if (!strcmp(list_at(fun->formals, 0), "self"))
+                        gml_env_bind(fun->env, "self", expr);
+                }
+            }
+            return value;
         case GML_TYPE_STRING:
             gml_eval_subscript_check(gml, &subexpr->position, key, expr);
             return gml_string_substring(gml, expr, (size_t)gml_number_value(gml, key), 1);

@@ -8,4 +8,4 @@ fn triangle(n) =>
         print("\n");
     }
 
-triangle(16);
+triangle(32);
