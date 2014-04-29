@@ -18,6 +18,20 @@ lex_t *lex_create(const char *filename, const char *source) {
     lex->source            = source;
     lex->index             = 0;
     lex->token             = NULL;
+
+    /* Handle BOM at the beginning of the source if it exists */
+    size_t i;
+    for (i = 0; i < 3; i++) {
+        if (lex->source[i] == '\0')
+            break;
+        if (lex->source[i] != "\xEF\xBB\xBF"[i])
+            break;
+    }
+
+    /* Advanced the input source if there was a BOM */
+    if (i == 3)
+        lex->source += 3;
+
     return lex;
 }
 
