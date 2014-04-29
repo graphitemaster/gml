@@ -1054,6 +1054,24 @@ static gml_value_t gml_eval_assign_table(gml_state_t *gml, gml_value_t table, gm
         gml_throw(true, "Table is not a hashtable.");
         gml_abort(gml);
     }
+    /*
+     * Deal with binding the `self' formal for the function if assigning
+     * a method function to the table.
+     */
+    if (gml_value_typeof(gml, value) == GML_TYPE_FUNCTION) {
+        gml_function_t *fun = (gml_function_t*)gml_value_unbox(gml, value);
+        if (!strcmp(list_at(fun->formals, 0), "self")) {
+            /*
+             * If the table hasn't already been promoted to a class we'll
+             * promote it now.
+             */
+            gml_table_t *unbox = (gml_table_t*)gml_value_unbox(gml, table);
+            if (!list_find(gml->classes, unbox))
+                list_push(gml->classes, unbox);
+
+            gml_env_bind(fun->env, "self", table);
+        }
+    }
     gml_table_put(gml, table, key, value);
     return value;
 }
