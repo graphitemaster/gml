@@ -53,6 +53,7 @@ language.
 * elif
 * fn
 * is
+* self *only reserved as first formal in lambas bound to tables*
 
 # Types
 
@@ -215,7 +216,7 @@ table["bar"];
 ```
 
 This also allows for subscripting with atoms as values; thus, the following
-two are functionally equivlant.
+two are functionally equivlant
 ```
 table[:member]
 table.member
@@ -228,6 +229,13 @@ table = { :a = 1, "b" = 2 };
 table.c = 1;
 table["c"] = 2;
 ````
+
+Tables can be promoted to classes if they contain at least one value
+which is a function or lambda who's first formal is named `self`.
+```
+table = { :a = fn(self, foo) { self.member + foo; }, :member = 200 };
+table.a(100); // self is passed implicitly
+```
 
 Tables can be compared with logical operators `== !=`.
 
