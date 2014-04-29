@@ -170,22 +170,37 @@ static lex_token_t *lex_number(lex_t *lex) {
     }
     return lex_emit(lex, LEX_TOKEN_NUMBER);
 }
+
+static void lex_octal_brace(int c, int *r) {
+    if ('0' <= c && c <= '7')
+        *r = (*r << 3) | (c - '0');
+}
+
+static void lex_ioctal(lex_t *lex, int ch) {
+    int r = ch - '0';
+    lex_octal_brace((ch = lex_get(lex)), &r);
+    lex_octal_brace((ch = lex_get(lex)), &r);
+    lex_insert(lex, r);
+}
+
 static lex_token_t *lex_string(lex_t *lex, int quote) {
     lex->size = 0;
     int ch;
+    int next;
     while ((ch = lex_peek(lex)) != quote) {
         if (ch == '\\') {
             lex_skip(lex); /* skip '\' */
-            switch (lex_skip(lex)) {
-                case 'a':  lex_insert(lex, '\a'); break;
-                case 'b':  lex_insert(lex, '\b'); break;
-                case 'f':  lex_insert(lex, '\f'); break;
-                case 'n':  lex_insert(lex, '\n'); break;
-                case 'r':  lex_insert(lex, '\r'); break;
-                case 't':  lex_insert(lex, '\t'); break;
-                case '\\': lex_insert(lex, '\\'); break;
-                case '\'': lex_insert(lex, '\''); break;
-                case '\"': lex_insert(lex, '\"'); break;
+            switch ((next = lex_skip(lex))) {
+                case 'a':         lex_insert(lex, '\a'); break;
+                case 'b':         lex_insert(lex, '\b'); break;
+                case 'f':         lex_insert(lex, '\f'); break;
+                case 'n':         lex_insert(lex, '\n'); break;
+                case 'r':         lex_insert(lex, '\r'); break;
+                case 't':         lex_insert(lex, '\t'); break;
+                case '\\':        lex_insert(lex, '\\'); break;
+                case '\'':        lex_insert(lex, '\''); break;
+                case '\"':        lex_insert(lex, '\"'); break;
+                case '0' ... '7': lex_ioctal(lex, next); break;
             }
         } else {
             lex_get(lex);

@@ -3,6 +3,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <math.h>
+#include <unistd.h>
 
 static gml_value_t gml_builtin_print_impl(gml_state_t *gml, gml_value_t *args, size_t nargs, int nl) {
     char buffer[4096];
@@ -200,6 +201,16 @@ static gml_value_t gml_builtin_hypot(gml_state_t *gml, gml_value_t *args, size_t
     return gml_number_create(gml, hypot(gml_number_value(gml, args[0]), gml_number_value(gml, args[1])));
 }
 
+static gml_value_t gml_builtin_floor(gml_state_t *gml, gml_value_t *args, size_t nargs) {
+    gml_arg_check(gml, args, nargs, "floor", "n");
+    return gml_number_create(gml, floor(gml_number_value(gml, args[0])));
+}
+
+static gml_value_t gml_builtin_ceil(gml_state_t *gml, gml_value_t *args, size_t nargs) {
+    gml_arg_check(gml, args, nargs, "ceil", "n");
+    return gml_number_create(gml, ceil(gml_number_value(gml, args[0])));
+}
+
 static gml_value_t gml_builtin_map(gml_state_t *gml, gml_value_t *args, size_t nargs) {
     gml_arg_check(gml, args, nargs, "map", "fa");
     size_t       length  = gml_array_length(gml, args[1]);
@@ -355,6 +366,8 @@ void gml_builtins_install(gml_state_t *gml) {
     gml_set_native(gml, "sqrt",     &gml_builtin_sqrt,     1,  1);
     gml_set_native(gml, "cbrt",     &gml_builtin_cbrt,     1,  1);
     gml_set_native(gml, "hypot",    &gml_builtin_hypot,    2,  2);
+    gml_set_native(gml, "floor",    &gml_builtin_floor,    1,  1);
+    gml_set_native(gml, "ceil",     &gml_builtin_ceil,     1,  1);
 
     /* Map filter reduce */
     gml_set_native(gml, "map",      &gml_builtin_map,      2,  2);

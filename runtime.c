@@ -42,7 +42,7 @@ const char *gml_typename(gml_state_t *gml, gml_type_t type) {
 }
 
 /* Enviroment */
-#define ENV_BUCKETS 7
+#define ENV_BUCKETS 64
 
 typedef struct gml_env_binding_s gml_env_binding_t;
 
@@ -91,7 +91,7 @@ static uint32_t gml_env_hash(const char *string) {
 }
 
 static gml_env_binding_t **gml_env_bucket(gml_env_t *env, const char *name) {
-    return &env->buckets[gml_env_hash(name) % sizeof(env->buckets) / sizeof(gml_env_binding_t*)];
+    return &env->buckets[gml_env_hash(name) % ENV_BUCKETS];
 }
 
 void gml_env_bind(gml_env_t *env, const char *name, gml_value_t value) {
@@ -926,7 +926,7 @@ static gml_value_t gml_eval_block(gml_state_t *gml, list_t *block, gml_env_t *en
 }
 
 static gml_value_t gml_eval_ident(gml_state_t *gml, ast_t *expr, gml_env_t *env) {
-    gml_value_t *ptr;
+    gml_value_t *ptr = NULL;
     if (!gml_env_lookup(env, expr->ident, &ptr)) {
         gml_error(&expr->position, "`%s' is unbound.", expr->ident);
         gml_abort(gml);
