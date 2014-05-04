@@ -81,23 +81,16 @@ static char *repl_read(void) {
                 parens++;
             else if (strchr(")]}", ch))
                 parens--;
-
-            /* Deal with line now */
             if (ch == '\n') {
-                buffer[offset++] = '\n';
-                fputc('\n', stdout);
-                /* Scope */
                 if (strchr("};", buffer[offset - 1]) && parens <= 0)
                     break;
                 else {
                     for (size_t i = 0; i < parens; i++)
                         printf("... ");
                 }
-                continue;
-            } else {
-                buffer[offset++] = ch;
-                fputc(ch, stdout);
             }
+            buffer[offset++] = ch;
+            fputc(ch, stdout);
         }
     }
     buffer[offset] = '\0';
