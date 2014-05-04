@@ -50,7 +50,8 @@ typedef enum {
     LEX_TOKEN_FN,        /* fn     */
     LEX_TOKEN_IS,        /* is     */
     LEX_TOKEN_IN,        /* in     */
-    LEX_TOKEN_FOR        /* for    */
+    LEX_TOKEN_FOR ,      /* for    */
+    LEX_TOKEN_RETURN     /* return */
 } lex_token_class_t;
 
 typedef struct {

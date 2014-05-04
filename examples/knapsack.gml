@@ -25,18 +25,22 @@ items = [
 
 fn evaluate(weight, index) {
     if index < 0 => { :bits = 0, :value = 0 };
-    if weight < items[index].weight => evaluate(weight, index - 1);
-    v1 = evaluate(weight, index - 1);
-    v2 = evaluate(weight - items[index].weight, index - 1);
-    v2.value = v2.value + items[index].value;
-    v2.bits = v2.bits | (1 << index);
-    if v1.value >= v2.value => v1; else => v2;
+    else {
+        if weight < items[index].weight => evaluate(weight, index - 1);
+        else {
+            v1 = evaluate(weight, index - 1);
+            v2 = evaluate(weight - items[index].weight, index - 1);
+            v2.value = v2.value + items[index].value;
+            v2.bits = v2.bits | (1 << index);
+            if v1.value >= v2.value => v1; else => v2;
+        }
+    }
 }
 
 fn main() {
     solution = evaluate(400, length(items) - 1);
     weight = 0;
-    for i in range(0, length(items) - 1) {
+    for i in range(0, length(items)) {
         if solution.bits & (1 << i) {
             println(items[i].name);
             weight = weight + items[i].weight;

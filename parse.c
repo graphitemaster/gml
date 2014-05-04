@@ -7,6 +7,9 @@ void gml_error(gml_position_t *position, const char *format, ...);
 
 static ast_t *ast_class_create(ast_class_t class, gml_position_t position) {
     ast_t *ast    = malloc(sizeof(*ast));
+    if (!ast)
+        return NULL;
+
     ast->class    = class;
     ast->position = position;
     return ast;
@@ -88,6 +91,8 @@ static void parse_expectskip(parse_t *parse, lex_token_class_t class) {
 
 parse_t *parse_create(const char *filename, const char *source) {
     parse_t *parse = malloc(sizeof(*parse));
+    if (!parse)
+        return NULL;
     if (!(parse->lex = lex_create(filename, source))) {
         free(parse);
         return NULL;
@@ -359,7 +364,8 @@ static ast_t *parse_expression_primary(parse_t *parse) {
         ast = parse_expression(parse);
         parse_expectskip(parse, LEX_TOKEN_RPAREN);
     } else {
-        gml_error(parse_position(parse), "Expected expression.");
+        gml_error(parse_position(parse), "Expected expression. (%s)",
+            lex_token_classname(parse_token(parse)->class));
         longjmp(parse->escape, 1);
     }
 
@@ -483,6 +489,7 @@ static ast_t *parse_simpleliteral(parse_t *parse) {
         ast->string = parse_token_string(parse);
         parse_skip(parse);
     } else {
+        free(ast);
         gml_error(parse_position(parse), "Expected number, string or atom.");
         longjmp(parse->escape, 1);
     }

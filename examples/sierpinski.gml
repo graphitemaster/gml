@@ -1,4 +1,4 @@
-﻿#!/usr/bin/gml
+#!/usr/bin/gml
 
 fn triangle(n) =>
     for y in range(0, n) {

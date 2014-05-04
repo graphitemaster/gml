@@ -215,6 +215,8 @@ static gml_value_t gml_builtin_map(gml_state_t *gml, gml_value_t *args, size_t n
     gml_arg_check(gml, args, nargs, "map", "fa");
     size_t       length  = gml_array_length(gml, args[1]);
     gml_value_t *applied = malloc(sizeof(gml_value_t) * length);
+    if (!applied)
+        return gml_nil_create(gml);
     for (size_t i = 0; i < length; i++) {
         gml_value_t current = gml_array_get(gml, args[1], i);
         applied[i] = gml_function_run(gml, args[0], &current, 1);
@@ -237,6 +239,8 @@ static gml_value_t gml_builtin_range(gml_state_t *gml, gml_value_t *args, size_t
         len++;
     }
     gml_value_t *applied = malloc(sizeof(gml_value_t) * len);
+    if (!applied)
+        return gml_nil_create(gml);
     for (size_t i = 0; i < len; i++)
         applied[i] = gml_number_create(gml, beg++);
     gml_value_t value = gml_array_create(gml, applied, len);
@@ -249,6 +253,8 @@ static gml_value_t gml_builtin_filter(gml_state_t *gml, gml_value_t *args, size_
     size_t       length  = gml_array_length(gml, args[1]);
     size_t       matched = 0;
     gml_value_t *applied = malloc(sizeof(gml_value_t) * length);
+    if (!applied)
+        return gml_nil_create(gml);
     for (size_t i = 0; i < length; i++) {
         gml_value_t current = gml_array_get(gml, args[1], i);
         gml_value_t eval    = gml_function_run(gml, args[0], &current, 1);

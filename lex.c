@@ -115,6 +115,9 @@ static lex_token_t *lex_emit(lex_t *lex, lex_token_class_t class) {
 
     /* Create new and replace */
     lex_token_t *token = malloc(sizeof(*token));
+    if (!token)
+        return NULL;
+
     token->class       = class;
     token->position    = lex->position;
     token->string      = strdup(lex->buffer);
@@ -129,15 +132,16 @@ static lex_token_t *lex_ident(lex_t *lex) {
         const char       *name;
         lex_token_class_t class;
     } keywords[] = {
-        { "var",    LEX_TOKEN_VAR   },
-        { "fn",     LEX_TOKEN_FN    },
-        { "is",     LEX_TOKEN_IS    },
-        { "if",     LEX_TOKEN_IF    },
-        { "elif",   LEX_TOKEN_ELIF  },
-        { "else",   LEX_TOKEN_ELSE  },
-        { "while",  LEX_TOKEN_WHILE },
-        { "in",     LEX_TOKEN_IN    },
-        { "for",    LEX_TOKEN_FOR   }
+        { "var",    LEX_TOKEN_VAR    },
+        { "fn",     LEX_TOKEN_FN     },
+        { "is",     LEX_TOKEN_IS     },
+        { "if",     LEX_TOKEN_IF     },
+        { "elif",   LEX_TOKEN_ELIF   },
+        { "else",   LEX_TOKEN_ELSE   },
+        { "while",  LEX_TOKEN_WHILE  },
+        { "in",     LEX_TOKEN_IN     },
+        { "for",    LEX_TOKEN_FOR    },
+        { "return", LEX_TOKEN_RETURN }
     };
     for (size_t i = 0; i < sizeof(keywords)/sizeof(*keywords); i++)
         if (!strcmp(lex->buffer, keywords[i].name))
@@ -346,6 +350,7 @@ const char *lex_token_classname(lex_token_class_t class) {
         case LEX_TOKEN_WHILE:       return "(keyword `while')";
         case LEX_TOKEN_IN:          return "(keyword `in')";
         case LEX_TOKEN_FOR:         return "(keyword `for')";
+        case LEX_TOKEN_RETURN:      return "(keyword `return')";
     }
     return "<unknown>";
 }

@@ -35,6 +35,8 @@ list_iterator_t *list_iterator_create(list_t *list) {
     if (!list) return NULL;
 
     list_iterator_t *it = malloc(sizeof(*it));
+    if (!it)
+        return NULL;
 
     it->pointer = list->head;
     it->list    = list;
@@ -71,6 +73,8 @@ bool list_iterator_end(list_iterator_t *it) {
 /* List node */
 static list_node_t *list_node_create(void *element) {
     list_node_t *node = malloc(sizeof(*node));
+    if (!node)
+        return NULL;
 
     node->element = element;
     node->next    = NULL;
@@ -148,6 +152,9 @@ static void list_atcache_cache(list_t *list, list_node_t *node) {
 /* List */
 list_t *list_create(void) {
     list_t *list    = malloc(sizeof(*list));
+    if (!list)
+        return NULL;
+
     list->length    = 0;
     list->head      = NULL;
     list->tail      = NULL;

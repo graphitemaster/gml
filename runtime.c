@@ -42,7 +42,7 @@ const char *gml_typename(gml_state_t *gml, gml_type_t type) {
 }
 
 /* Enviroment */
-#define ENV_BUCKETS 64
+#define ENV_BUCKETS 7
 
 typedef struct gml_env_binding_s gml_env_binding_t;
 
@@ -55,12 +55,18 @@ struct gml_env_binding_s {
 struct gml_env_s {
     gml_env_binding_t *buckets[ENV_BUCKETS];
     gml_env_t         *outer;
+    gml_env_t         *inner;
 };
 
-static gml_env_t *gml_env_push(gml_env_t *outer) {
+static gml_env_t *gml_env_push(gml_env_t *out) {
     gml_env_t *env = malloc(sizeof(*env));
+    if (!env)
+        return NULL;
+    if (out)
+        out->inner = env;
     memset(env->buckets, 0, sizeof(env->buckets));
-    env->outer = outer;
+    env->outer = out;
+    env->inner = NULL;
     return env;
 }
 
@@ -69,17 +75,26 @@ static gml_env_t *gml_env_create(void) {
 }
 
 static void gml_env_destroy(gml_env_t *env) {
-    for (size_t i = 0; i < ENV_BUCKETS; i++) {
-        for (gml_env_binding_t *bind = env->buckets[i]; bind;) {
-            gml_env_binding_t *next = bind->next;
-            free(bind->name);
-            free(bind);
-            bind = next;
+    while (env->inner)
+        env = env->inner;
+    while (env) {
+        for (size_t i = 0; i < ENV_BUCKETS; i++) {
+            for (gml_env_binding_t *bind = env->buckets[i]; bind;) {
+                gml_env_binding_t *next = bind->next;
+                free(bind->name);
+                free(bind);
+                bind = next;
+            }
+        }
+        if (env->outer) {
+            gml_env_t *out = env->outer;
+            free(env);
+            env = out;
+        } else {
+            free(env);
+            break;
         }
     }
-    if (env->outer)
-        gml_env_destroy(env->outer);
-    free(env);
 }
 
 static uint32_t gml_env_hash(const char *string) {
@@ -97,6 +112,9 @@ static gml_env_binding_t **gml_env_bucket(gml_env_t *env, const char *name) {
 void gml_env_bind(gml_env_t *env, const char *name, gml_value_t value) {
     gml_env_binding_t **bucket  = gml_env_bucket(env, name);
     gml_env_binding_t  *binding = malloc(sizeof(*binding));
+    if (!binding)
+        return;
+
     binding->name  = strdup(name);
     binding->value = value;
     binding->next  = *bucket;
@@ -130,6 +148,9 @@ typedef struct {
 
 static inline gml_ht_entry_t *gml_ht_entry_create(const void *key, void *value) {
     gml_ht_entry_t *entry = malloc(sizeof(*entry));
+    if (!entry)
+        return NULL;
+
     entry->key   = strdup(key);
     entry->value = value;
     return entry;
@@ -146,8 +167,14 @@ static inline gml_ht_entry_t *gml_ht_entry_find(gml_ht_t *hashtable, const char 
 
 static gml_ht_t *gml_ht_create(size_t size) {
     gml_ht_t *hashtable = malloc(sizeof(*hashtable));
+    if (!hashtable)
+        return NULL;
+
     hashtable->size  = size;
-    hashtable->table = malloc(sizeof(list_t*) * size);
+    if (!(hashtable->table = malloc(sizeof(list_t*) * size))) {
+        free(hashtable);
+        return NULL;
+    }
     for (size_t i = 0; i < hashtable->size; i++)
         hashtable->table[i] = list_create();
     return hashtable;
@@ -237,6 +264,9 @@ void gml_arg_check(gml_state_t *gml, gml_value_t *args, size_t nargs, const char
 /* State runtime */
 gml_state_t *gml_state_create(void) {
     gml_state_t *state = malloc(sizeof(*state));
+    if (!state)
+        return NULL;
+
     state->global      = gml_env_create();
     state->atoms       = gml_ht_create(32);
     state->parse       = NULL;
@@ -305,9 +335,9 @@ void gml_set_global(gml_state_t *gml, const char *name, gml_value_t value) {
     gml_value_t *oldp;
     if (gml_env_lookup(gml->global, name, &oldp)) {
         if (gml_value_typeof(gml, *oldp) != GML_TYPE_NUMBER) {
-            //gml_header_t *head = gml_value_unbox(gml, *oldp);
-            //head->destroy(gml, *oldp);
-            //list_erase(gml->objects, head);
+            gml_header_t *head = gml_value_unbox(gml, *oldp);
+            head->destroy(gml, *oldp);
+            list_erase(gml->objects, head);
         }
         *oldp = value;
     } else {
@@ -647,6 +677,8 @@ char *gml_string_utf8data(gml_state_t *gml, gml_value_t string) {
     gml_string_t *source = (gml_string_t*)gml_value_unbox(gml, string);
     size_t        length = gml_string_encoded_length(source->runes, source->length);
     char         *utf8   = malloc(length + 1);
+    if (!utf8)
+        return NULL;
     gml_string_encode(source->runes, source->length, (uint8_t*)utf8);
     return utf8;
 }
@@ -767,8 +799,9 @@ static void gml_table_rehash(gml_state_t *gml, gml_table_t *table) {
     gml_table_bucket_t *obuckets = table->buckets;
     gml_value_t         nil      = gml_nil_create(gml);
 
-    table->size    = osize * 2;
-    table->buckets = malloc(sizeof(gml_table_bucket_t) * table->size);
+    table->size = osize * 2;
+    if (!(table->buckets = malloc(sizeof(gml_table_bucket_t) * table->size)))
+        return;
 
     gml_table_clear(gml, table);
     for (size_t i = 0; i < osize; i++) {
@@ -792,10 +825,16 @@ void gml_table_destroy(gml_state_t *gml, gml_value_t value) {
 
 gml_value_t gml_table_create(gml_state_t *gml) {
     gml_table_t *table = malloc(sizeof(*table));
+    if (!table)
+        gml_nil_create(gml);
+
     table->header.type    = GML_TYPE_TABLE;
     table->header.destroy = &gml_table_destroy;
     table->size           = 11;
-    table->buckets        = malloc(sizeof(gml_table_bucket_t) * table->size);
+    if (!(table->buckets = malloc(sizeof(gml_table_bucket_t) * table->size))) {
+        free(table);
+        return gml_nil_create(gml);
+    }
 
     gml_table_clear(gml, table);
     list_push(gml->objects, table);
@@ -919,8 +958,10 @@ static gml_value_t gml_eval(gml_state_t *gml, ast_t *expr, gml_env_t *env);
 static gml_value_t gml_eval_block(gml_state_t *gml, list_t *block, gml_env_t *env) {
     list_iterator_t *it = list_iterator_create(block);
     gml_value_t value = gml_nil_create(gml);
-    while (!list_iterator_end(it))
-        value = gml_eval(gml, list_iterator_next(it), env);
+    while (!list_iterator_end(it)) {
+        ast_t *next = list_iterator_next(it);
+        value = gml_eval(gml, next, env);
+    }
     list_iterator_destroy(it);
     return value;
 }
@@ -987,6 +1028,8 @@ static gml_value_t gml_eval_call(gml_state_t *gml, ast_t *expr, gml_env_t *env) 
 static gml_value_t gml_eval_array(gml_state_t *gml, ast_t *expr, gml_env_t *env) {
     size_t       length   = list_length(expr->array);
     gml_value_t *elements = malloc(sizeof(gml_value_t) * length);
+    if (!elements)
+        return gml_nil_create(gml);
     for (size_t i = 0; i < length; i++)
         elements[i] = gml_eval(gml, list_at(expr->array, i), env);
     gml_value_t value = gml_array_create(gml, elements, length);
@@ -1022,9 +1065,9 @@ static gml_value_t gml_eval_assign_variable(gml_state_t *gml, ast_t *expr, gml_e
     gml_value_t *old;
     if (gml_env_lookup(env, expr->binary.left->ident, &old)) {
         if (gml_value_typeof(gml, *old) != GML_TYPE_NUMBER) {
-            //gml_header_t *head = gml_value_unbox(gml, *old);
-            //head->destroy(gml, *old);
-            //list_erase(gml->objects, head);
+            gml_header_t *head = gml_value_unbox(gml, *old);
+            head->destroy(gml, *old);
+            list_erase(gml->objects, head);
         }
         *old = value;
     } else {
@@ -1292,8 +1335,9 @@ static gml_value_t gml_eval_subscript(gml_state_t *gml, ast_t *subexpr, gml_env_
         default:
             gml_error(
                 &subexpr->position,
-                "Subscripting on unsupported type `%s'.",
-                gml_typename(gml, exprtype)
+                "Subscripting on unsupported type `%s' `%s'.",
+                gml_typename(gml, exprtype),
+                gml_typename(gml, gml_value_typeof(gml, key))
             );
             gml_abort(gml);
             break;

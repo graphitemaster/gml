@@ -79,6 +79,7 @@ struct ast_s {
         list_t        *toplevel;
         list_t        *table;
         double         number;
+        ast_t         *returnstmt;
         ast_cond_t     whilestmt;
         ast_for_t      forstmt;
         ast_cond_t     ifclause;
