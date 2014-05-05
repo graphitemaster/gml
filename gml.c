@@ -108,7 +108,7 @@ static const struct {
     repl_cmd_t  flag;
     const char *name;
 } repl_options[] = {
-    { CMD_VERSION,      "version"      },
+    { CMD_VERSION,      "version"      }, /* Must be the top one */
     { CMD_MULTILINE,    "multiline"    },
     { CMD_HISTORY,      "history"      },
     { CMD_AUTOCOMPLETE, "autocomplete" }
@@ -119,7 +119,8 @@ static void repl_help(const char *app) {
     printf("Options:\n");
     for (size_t i = 0; i < sizeof(repl_options) / sizeof(*repl_options); i++)
         printf("    --%s\n", repl_options[i].name);
-    for (size_t i = 0; i < sizeof(repl_options) / sizeof(*repl_options); i++)
+    /* Start from 1 to skip CMD_VERSION */
+    for (size_t i = 1; i < sizeof(repl_options) / sizeof(*repl_options); i++)
         printf("    --no-%s\n", repl_options[i].name);
 }
 
@@ -141,7 +142,8 @@ int main(int argc, char **argv) {
             /* If it contains no- then it's a 'disable' */
             if (!strncmp(command, "no-", 3)) {
                 command = &argv[arg][5];
-                for (size_t i = 0; i < sizeof(repl_options) / sizeof(*repl_options); i++) {
+                /* Start from 1 to skip CMD_VERSION */
+                for (size_t i = 1; i < sizeof(repl_options) / sizeof(*repl_options); i++) {
                     if (!strcmp(command, repl_options[i].name))
                         flags &= ~repl_options[i].flag;
                 }
