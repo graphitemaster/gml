@@ -1,9 +1,9 @@
 CC        ?= clang
 COMPILER   = $(shell $(CC) --version | head -1)
 OS         = $(shell uname)
-CFLAGS     = -std=gnu99 -Wall -Wextra -g3 -DGML_COMPILER="\"$(COMPILER)\"" -DGML_OS="\"$(OS)\"" -DGML_TYPE="\"development\""
+CFLAGS     = -std=gnu99 -Wall -Wextra -g3 -Ilinenoise -DGML_COMPILER="\"$(COMPILER)\"" -DGML_OS="\"$(OS)\"" -DGML_TYPE="\"development\""
 LDFLAGS    = -lm
-SOURCES    = lex.c list.c parse.c repl.c runtime.c builtin.c
+SOURCES    = lex.c list.c parse.c runtime.c builtin.c gml.c linenoise/linenoise.c
 OBJECTS    = $(SOURCES:.c=.o)
 EXECUTABLE = gml
 PREFIX     = /usr
