@@ -4,6 +4,26 @@
 #include <linenoise.h>
 #include "gml.h"
 
+static const char *repl_completions[] = {
+    /* Builtins */
+    "print",  "println", "cos",    "sin",    "tan",    "acos",  "asin",
+    "atan",   "atan2",   "cosh",   "sinh",   "tanh",   "acosh", "asinh",
+    "atanh",  "exp",     "exp2",   "expm1",  "ldexp",  "log",   "log2",
+    "log10",  "ilogb",   "log1p",  "logb",   "scalbn", "pow",   "sqrt",
+    "cbrt",   "hypot",   "floor",  "ceil",   "map",    "range", "filter",
+    "reduce", "length",  "find",
+
+    /* Keywords */
+    "if",     "elif",    "else",   "fn",     "var",    "for",   "in",
+    "while",  "return"
+};
+
+static void repl_completion(const char *complete, linenoiseCompletions *lc) {
+    (void)complete;
+    for (size_t i = 0; i < sizeof(repl_completions) / sizeof(*repl_completions); i++)
+        linenoiseAddCompletion(lc, repl_completions[i]);
+}
+
 static const char *repl_prompt = ">>> ";
 
 static int repl_dump(gml_state_t *gml, gml_value_t value) {
@@ -39,6 +59,9 @@ static int repl_read(int history) {
     if (!(gml = gml_state_create()))
         return 0;
 
+    /* Install the builtins */
+    gml_builtins_install(gml);
+
     char *line;
     while ((line = linenoise(repl_prompt))) {
         if (!*line) {
@@ -63,6 +86,9 @@ static int repl_exec(list_t *files) {
     if (!(gml = gml_state_create()))
         return 0;
 
+    /* Install the builtins */
+    gml_builtins_install(gml);
+
     const char *file;
     while ((file = list_shift(files)))
         gml_run_file(gml, file);
@@ -72,18 +98,20 @@ static int repl_exec(list_t *files) {
 }
 
 typedef enum {
-    CMD_VERSION    = 1 << 0,
-    CMD_MULTILINE  = 1 << 1,
-    CMD_HISTORY    = 1 << 2
+    CMD_VERSION      = 1 << 0,
+    CMD_MULTILINE    = 1 << 1,
+    CMD_HISTORY      = 1 << 2,
+    CMD_AUTOCOMPLETE = 1 << 3
 } repl_cmd_t;
 
 static const struct {
     repl_cmd_t  flag;
     const char *name;
 } repl_options[] = {
-    { CMD_VERSION,      "version"   },
-    { CMD_MULTILINE,    "multiline" },
-    { CMD_HISTORY,      "history"   }
+    { CMD_VERSION,      "version"      },
+    { CMD_MULTILINE,    "multiline"    },
+    { CMD_HISTORY,      "history"      },
+    { CMD_AUTOCOMPLETE, "autocomplete" }
 };
 
 static void repl_help(const char *app) {
@@ -101,7 +129,7 @@ int main(int argc, char **argv) {
 
     const char *app   = argv[-1];
     list_t     *files = list_create();
-    repl_cmd_t  flags = CMD_HISTORY;
+    repl_cmd_t  flags = CMD_HISTORY | CMD_AUTOCOMPLETE;
 
     for (int arg = 0; arg < argc; arg++) {
         if (!strncmp(argv[arg], "--", 2)) {
@@ -152,6 +180,9 @@ int main(int argc, char **argv) {
 
     if (flags & CMD_MULTILINE)
         linenoiseSetMultiLine(1);
+
+    if (flags & CMD_AUTOCOMPLETE)
+        linenoiseSetCompletionCallback(repl_completion);
 
     int status = (list_length(files) != 0)
                     ? repl_exec(files)
