@@ -23,7 +23,7 @@ static gml_value_t gml_builtin_print_impl(gml_state_t *gml, gml_value_t *args, s
     }
     if (nl)
         printf("\n");
-    return gml_nil_create(gml);
+    return gml_none_create(gml);
 }
 
 /* io */
