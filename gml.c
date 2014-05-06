@@ -171,9 +171,9 @@ int main(int argc, char **argv) {
             }
         } else {
             /* If it contains .gml it's a file */
-            char *find = strrchr(argv[argc], '.');
-            if (find && strcmp(find, ".gml"))
-                list_push(files, argv[argc]);
+            char *find = strrchr(argv[arg], '.');
+            if (find && !strcmp(find, ".gml"))
+                list_push(files, argv[arg]);
         }
         argc--;
     }
