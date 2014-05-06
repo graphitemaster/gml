@@ -150,7 +150,7 @@ name(formals);
 Symbolic constants or keywords take on the form: `:name`. Atoms are
 generally useless in function or global scope and are primarly used
 for tables. Atoms can be used as symbolic constants. Currently there
-are three implicitly defined constants: `:nil, :true, :false`.
+are four implicitly defined constants: `:nil, :true, :false, :none`.
 
 # Strings
 Strings take on two forms, either `"string"`, or with single character

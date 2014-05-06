@@ -204,6 +204,7 @@ static void *gml_ht_find(gml_ht_t *hashtable, const char *key) {
 }
 
 struct gml_state_s {
+    void      *user;
     gml_env_t *global;
     gml_ht_t  *atoms;
     parse_t   *parse;
@@ -296,6 +297,14 @@ void gml_state_destroy(gml_state_t *state) {
     list_destroy(state->classes);
     parse_destroy(state->parse);
     free(state);
+}
+
+void gml_state_user_set(gml_state_t *gml, void *user) {
+    gml->user = user;
+}
+
+void *gml_state_user_get(gml_state_t *gml) {
+    return gml->user;
 }
 
 /* NaN boxed value representation of types */
@@ -857,6 +866,10 @@ gml_value_t gml_nil_create(gml_state_t *gml) {
     return gml_atom_create(gml, "nil");
 }
 
+gml_value_t gml_none_create(gml_state_t *gml) {
+    return gml_atom_create(gml, "none");
+}
+
 gml_value_t gml_true_create(gml_state_t *gml) {
     return gml_atom_create(gml, "true");
 }
@@ -875,7 +888,8 @@ int gml_isfalse(gml_state_t *gml, gml_value_t value) {
             return gml_string_length(gml, value) == 0;
         case GML_TYPE_ATOM:
             return (!strcmp(gml_atom_key(gml, value), "false") ||
-                    !strcmp(gml_atom_key(gml, value), "nil"));
+                    !strcmp(gml_atom_key(gml, value), "nil")   ||
+                    !strcmp(gml_atom_key(gml, value), "none"));
         case GML_TYPE_ARRAY:
             return gml_array_length(gml, value) == 0;
         case GML_TYPE_TABLE:
@@ -1511,17 +1525,23 @@ size_t gml_dump(gml_state_t *gml, gml_value_t value, char *buffer, size_t length
 #   define space      ((length - offset) > 0 ? (length - offset) : 0)
 #   define append(...) offset += snprintf(buffer + offset, space, __VA_ARGS__);
 
-    size_t  offset = 0;
-    size_t  nelems;
-    size_t  nkeys;
-    list_t *keys;
+    size_t      offset = 0;
+    size_t      nelems;
+    size_t      nkeys;
+    list_t     *keys;
+    const char *atom;
     switch (gml_value_typeof(gml, value)) {
         case GML_TYPE_NUMBER:
             return snprintf(buffer, length, "%g", gml_number_value(gml, value));
         case GML_TYPE_STRING:
             return snprintf(buffer, length, "\"%s\"", gml_string_utf8data(gml, value));
         case GML_TYPE_ATOM:
-            return snprintf(buffer, length, ":%s", gml_atom_key(gml, value));
+            /* The none atom is nothingness. It's used to specify nothingness. */
+            atom = gml_atom_key(gml, value);
+            if (strcmp(atom, "none"))
+                return snprintf(buffer, length, ":%s", gml_atom_key(gml, value));
+            else
+                return 0;
         case GML_TYPE_ARRAY:
             nelems = gml_array_length(gml, value);
             append("[");

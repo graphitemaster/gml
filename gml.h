@@ -107,5 +107,8 @@ gml_value_t gml_table_create(gml_state_t *gml);
 gml_value_t gml_function_run(gml_state_t *gml, gml_value_t function, gml_value_t *args, size_t nargs);
 size_t gml_array_length(gml_state_t *gml, gml_value_t array);
 gml_value_t gml_array_get(gml_state_t *gml, gml_value_t array, size_t index);
+gml_value_t gml_none_create(gml_state_t *gml);
+void gml_state_user_set(gml_state_t *gml, void *user);
+void *gml_state_user_get(gml_state_t *gml);
 
 #endif

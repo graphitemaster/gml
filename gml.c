@@ -4,6 +4,17 @@
 #include <linenoise.h>
 #include "gml.h"
 
+/* For the REPL we define a quit function */
+typedef struct {
+    int quit;
+} repl_t;
+
+static gml_value_t repl_builtin_quit(gml_state_t *gml, gml_value_t *args, size_t nargs) {
+    gml_arg_check(gml, args, nargs, "quit", "");
+    ((repl_t*)gml_state_user_get(gml))->quit = 1;
+    return gml_none_create(gml);
+}
+
 static const char *repl_completions[] = {
     /* Builtins */
     "print",  "println", "cos",    "sin",    "tan",    "acos",  "asin",
@@ -44,7 +55,8 @@ static int repl_dump(gml_state_t *gml, gml_value_t value) {
         }
     }
 
-    printf("%s\n", buffer);
+    if (count != 0)
+        printf("%s\n", buffer);
     free(buffer);
     return 1;
 }
@@ -59,11 +71,15 @@ static int repl_read(int history) {
     if (!(gml = gml_state_create()))
         return 0;
 
+    repl_t repl = { .quit = 0 };
+    gml_state_user_set(gml, (void *)&repl);
+
     /* Install the builtins */
     gml_builtins_install(gml);
+    gml_set_native(gml, "quit", &repl_builtin_quit, 0, 0);
 
     char *line;
-    while ((line = linenoise(repl_prompt))) {
+    while (!repl.quit && (line = linenoise(repl_prompt))) {
         if (!*line) {
             free(line);
             continue;
