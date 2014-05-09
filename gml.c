@@ -98,6 +98,11 @@ static int repl_read(int history) {
             prompt = promptmem;
         } else {
             prompt = repl_prompt;
+            if (list_length(linelist)) {
+                list_foreach(linelist, NULL, &free);
+                list_destroy(linelist);
+                linelist = list_create();
+            }
         }
 
         /* No more lines to process? */

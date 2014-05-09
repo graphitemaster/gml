@@ -288,6 +288,8 @@ static int parse_precedence(lex_token_class_t class) {
         default:                  return -1;
     }
 }
+static ast_t *parse_subscript(parse_t *parse, ast_t *ast);
+static ast_t *parse_subscript_sugar(parse_t *parse, ast_t *ast);
 static ast_t *parse_call(parse_t *parse, ast_t *ast) {
     /* Function calls */
     list_t *args = list_create();
@@ -303,9 +305,13 @@ static ast_t *parse_call(parse_t *parse, ast_t *ast) {
     /* chaining calls */
     if (parse_matchskip(parse, LEX_TOKEN_LPAREN))
         return parse_call(parse, call);
+    else if (parse_matchskip(parse, LEX_TOKEN_LBRACKET))
+        return parse_subscript(parse, call);
+    else if (parse_matchskip(parse, LEX_TOKEN_DOT))
+        return parse_subscript_sugar(parse, call);
     return call;
 }
-static ast_t *parse_subscript_sugar(parse_t *parse, ast_t *ast);
+
 static ast_t *parse_subscript(parse_t *parse, ast_t *ast) {
     ast_t *subscript = ast_class_create(AST_SUBSCRIPT, ast->position);
     subscript->subscript.expr = ast;
