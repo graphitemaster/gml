@@ -295,7 +295,8 @@ void gml_state_destroy(gml_state_t *state) {
     list_iterator_destroy(it);
     list_destroy(state->asts);
     list_destroy(state->classes);
-    parse_destroy(state->parse);
+    if (state->parse)
+        parse_destroy(state->parse);
     free(state);
 }
 

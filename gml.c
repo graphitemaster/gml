@@ -35,7 +35,7 @@ static void repl_completion(const char *complete, linenoiseCompletions *lc) {
         linenoiseAddCompletion(lc, repl_completions[i]);
 }
 
-static const char *repl_prompt = ">>> ";
+static char *repl_prompt = ">>> ";
 
 static int repl_dump(gml_state_t *gml, gml_value_t value) {
     size_t allocated = 1024;
@@ -67,7 +67,10 @@ static int repl_dump(gml_state_t *gml, gml_value_t value) {
  * within here as a result.
  */
 static int repl_read(int history) {
-    gml_state_t *gml = NULL;
+    char        *prompt    = repl_prompt;
+    char        *promptmem = NULL;
+    gml_state_t *gml       = NULL;
+
     if (!(gml = gml_state_create()))
         return 0;
 
@@ -78,21 +81,113 @@ static int repl_read(int history) {
     gml_builtins_install(gml);
     gml_set_native(gml, "quit", &repl_builtin_quit, 0, 0);
 
-    char *line;
-    while (!repl.quit && (line = linenoise(repl_prompt))) {
-        if (!*line) {
-            free(line);
+    char   *linedata  = NULL;
+    char   *linetail  = NULL;
+    size_t  linesize  = 0;
+    list_t *linelist  = list_create();
+    size_t  indent    = 0;
+    size_t  shorthand = 0;
+
+    while (!repl.quit) {
+        if (indent) {
+            /* construct a new indent prompt */
+            free(promptmem);
+            promptmem = calloc(1, 4 * indent + 1);
+            for (size_t i = 0; i < indent + 1; i++)
+                strcat(promptmem, "... ");
+            prompt = promptmem;
+        } else {
+            prompt = repl_prompt;
+        }
+
+        /* No more lines to process? */
+        if (!(linedata = linenoise(prompt)))
+            break;
+
+        /* Empty lines are ignored */
+        if (!*linedata) {
+            free(linedata);
             continue;
         }
-        if (!repl_dump(gml, gml_run_string(gml, line))) {
-            free(line);
-            gml_state_destroy(gml);
-            return 0;
+
+        linesize = strlen(linedata);
+        linetail = &linedata[linesize - 1];
+
+        /* Handle indentation levels */
+        if (strchr("([{", *linetail))
+            indent++;
+
+        if (strchr(")]}", *linetail)) {
+            /* We do not want to subtract too far */
+            if (indent)
+                indent--;
         }
+
+        /* If there is a shorthand expression then mark it as such */
+        if (linetail[-1] == '=' && linetail[0] == '>')
+            shorthand++;
+
+        /* No indentation levels left */
+        if (indent == 0) {
+            /*
+             * No indentation levels means any shorthand expressions are
+             * now finished.
+             */
+            if (shorthand)
+                shorthand--;
+
+            /*
+             * We've just finished the indentation level on the current
+             * line or we're a single shorthand expression
+             */
+            if (strchr("};", *linetail) || shorthand == 1) {
+                /* There is a back buffer that goes with all of this */
+                if (list_length(linelist)) {
+                    size_t           plsize = 1;
+                    char            *pldata = NULL;
+                    char            *plitem = NULL;
+                    list_iterator_t *it     = list_iterator_create(linelist);
+
+                    /* Calculate playload size */
+                    while (!list_iterator_end(it))
+                        plsize += strlen(list_iterator_next(it));
+                    list_iterator_destroy(it);
+
+                    /* Construct payload */
+                    pldata = calloc(1, plsize + linesize);
+                    while ((plitem = list_shift(linelist))) {
+                        strcat(pldata, plitem);
+                        free(plitem);
+                    }
+
+                    /* Append the current line to the rest of the payload */
+                    strcat(pldata, linedata);
+
+                    /* Swap what is going to be processed */
+                    free(linedata);
+                    linedata = pldata;
+                }
+
+                /* Process the payload */
+                if (!repl_dump(gml, gml_run_string(gml, linedata)))
+                    goto repl_read_leave;
+            }
+        }
+        /* Append the line to the history */
         if (history)
-            linenoiseHistoryAdd(line);
-        free(line);
+            linenoiseHistoryAdd(linedata);
+        /* Append the line to our back buffer */
+        list_push(linelist, linedata);
     }
+
+repl_read_leave:
+    /* Any unprocessed data in our back buffer needs to be freed */
+    list_foreach(linelist, NULL, &free);
+    list_destroy(linelist);
+
+    /* If there was an allocated prompt */
+    free(promptmem);
+
     gml_state_destroy(gml);
     return 1;
 }
