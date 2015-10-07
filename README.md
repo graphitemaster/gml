@@ -27,7 +27,7 @@ primitive operations (like concatenation, folding, etc).
 * Logical operators: `&& || !`
 * Bitwise operators: `& | << >> ~ ^`
 * Unary operators: `- +`
-* Comparision operators: `< > <= >= == != is`
+* Comparison operators: `< > <= >= == != is`
 
 Objects in GML can be equal or the same. Objects are considered the same
 when they refer to the same slot in the enviroment. Sameness is compared
